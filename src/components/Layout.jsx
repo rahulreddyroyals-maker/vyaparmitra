@@ -6,15 +6,16 @@ import { signOut } from 'firebase/auth'
 import { useAuth } from '../contexts/AuthContext'
 import {
   LayoutDashboard, Package, Users, FileText, BarChart3,
-  Menu, X, LogOut, Bell, MessageSquare
+  Menu, X, LogOut, Bell, MessageSquare, Smartphone
 } from 'lucide-react'
 
 const NAV = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', labelTe: 'డాష్‌బోర్డ్' },
-  { to: '/products', icon: Package, label: 'Products', labelTe: 'ఉత్పత్తులు' },
-  { to: '/customers', icon: Users, label: 'Customers', labelTe: 'కస్టమర్లు' },
-  { to: '/invoices', icon: FileText, label: 'Invoices', labelTe: 'ఇన్వాయిస్‌లు' },
-  { to: '/reports', icon: BarChart3, label: 'Reports', labelTe: 'నివేదికలు' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/products', icon: Package, label: 'Products' },
+  { to: '/customers', icon: Users, label: 'Customers' },
+  { to: '/invoices', icon: FileText, label: 'Invoices' },
+  { to: '/reports', icon: BarChart3, label: 'Reports' },
+  { to: '/simulator', icon: Smartphone, label: 'WA Simulator', highlight: true },
 ]
 
 export default function Layout({ children }) {
@@ -45,7 +46,7 @@ export default function Layout({ children }) {
         </div>
 
         <nav className="p-4 space-y-1">
-          {NAV.map(({ to, icon: Icon, label }) => (
+          {NAV.map(({ to, icon: Icon, label, highlight }) => (
             <NavLink
               key={to}
               to={to}
@@ -54,12 +55,15 @@ export default function Layout({ children }) {
                 `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                   isActive
                     ? 'bg-primary text-white shadow-lg shadow-primary/30'
+                    : highlight
+                    ? 'text-green-300 hover:bg-white/10 hover:text-white border border-green-700/40'
                     : 'text-blue-200 hover:bg-white/10 hover:text-white'
                 }`
               }
             >
               <Icon size={18} />
-              {label}
+              <span className="flex-1">{label}</span>
+              {highlight && <span className="text-xs bg-success text-white px-1.5 py-0.5 rounded-full">Demo</span>}
             </NavLink>
           ))}
         </nav>
