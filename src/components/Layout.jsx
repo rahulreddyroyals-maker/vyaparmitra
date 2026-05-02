@@ -1,4 +1,4 @@
-// src/components/Layout.jsx
+﻿// src/components/Layout.jsx
 import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { auth } from '../lib/firebase'
@@ -30,7 +30,6 @@ export default function Layout({ children }) {
 
   return (
     <div className="min-h-screen bg-light flex">
-      {/* Sidebar */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-navy text-white transform transition-transform duration-300 lg:relative lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center justify-between p-5 border-b border-white/10">
           <div>
@@ -68,7 +67,6 @@ export default function Layout({ children }) {
           ))}
         </nav>
 
-        {/* WhatsApp CTA */}
         <div className="mx-4 mt-4 p-4 bg-green-900/40 rounded-xl border border-green-700/40">
           <div className="flex items-center gap-2 mb-2">
             <MessageSquare size={16} className="text-green-400" />
@@ -78,24 +76,16 @@ export default function Layout({ children }) {
         </div>
 
         <div className="absolute bottom-0 left-0 right-0 p-4">
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-sm font-medium text-blue-200 hover:bg-white/10 hover:text-white transition-all"
-          >
+          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-sm font-medium text-blue-200 hover:bg-white/10 hover:text-white transition-all">
             <LogOut size={18} />
             Logout
           </button>
         </div>
       </aside>
 
-      {/* Overlay */}
-      {open && (
-        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setOpen(false)} />
-      )}
+      {open && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setOpen(false)} />}
 
-      {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Topbar */}
         <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button onClick={() => setOpen(true)} className="lg:hidden text-gray-600 hover:text-navy">
@@ -120,7 +110,6 @@ export default function Layout({ children }) {
             </div>
           </div>
         </header>
-
         <main className="flex-1 p-6 overflow-auto">{children}</main>
       </div>
     </div>
