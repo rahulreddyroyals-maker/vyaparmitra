@@ -1,13 +1,16 @@
 // src/components/Layout.jsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { auth } from '../lib/firebase'
 import { signOut } from 'firebase/auth'
 import { useAuth } from '../contexts/AuthContext'
+import { getInvoices, getProducts } from '../lib/supabase'
 import {
   LayoutDashboard, Package, Users, FileText,
-  BarChart3, Smartphone, LogOut, Bell, Menu
+  BarChart3, Smartphone, LogOut, Bell, Menu, X,
+  AlertTriangle, IndianRupee, CheckCircle
 } from 'lucide-react'
+import { format } from 'date-fns'
 
 const NAV = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Home' },
@@ -22,6 +25,93 @@ export default function Layout({ children }) {
   const navigate = useNavigate()
   const location = useLocation()
   const [showMore, setShowMore] = useState(false)
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [notifications, setNotifications] = useState([])
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  useEffect(() => {
+    if (!business) return
+    loadNotifications()
+  }, [business])
+
+  const loadNotifications = async () => {
+    const [invRes, prodRes] = await Promise.all([
+      getInvoices(business.id),
+      getProducts(business.id),
+    ])
+    const invoices = invRes.data || []
+    const products = prodRes.data || []
+
+    const notifs = []
+
+    // Pending payment notifications
+    const pending = invoices.filter(i => i.status === 'pending')
+    if (pending.length > 0) {
+      const total = pending.reduce((s, i) => s + (i.total_amount || 0), 0)
+      notifs.push({
+        id: 'pending',
+        type: 'payment',
+        icon: IndianRupee,
+        color: 'text-orange-500',
+        bg: 'bg-orange-50',
+        title: 'Pending Payments',
+        body: `${pending.length} invoices worth \u20B9${total.toLocaleString('en-IN')} are unpaid`,
+        time: 'Now',
+        action: '/invoices',
+      })
+    }
+
+    // Low stock notifications
+    const lowStock = products.filter(p => p.stock <= (p.low_stock_threshold || 5))
+    lowStock.forEach(p => {
+      notifs.push({
+        id: `stock-${p.id}`,
+        type: 'stock',
+        icon: AlertTriangle,
+        color: 'text-red-500',
+        bg: 'bg-red-50',
+        title: 'Low Stock Alert',
+        body: `${p.name} has only ${p.stock} units left`,
+        time: 'Today',
+        action: '/products',
+      })
+    })
+
+    // Recent paid invoices
+    const today = new Date().toISOString().split('T')[0]
+    const todayPaid = invoices.filter(i => i.status === 'paid' && i.created_at?.startsWith(today))
+    if (todayPaid.length > 0) {
+      const total = todayPaid.reduce((s, i) => s + (i.total_amount || 0), 0)
+      notifs.push({
+        id: 'paid-today',
+        type: 'success',
+        icon: CheckCircle,
+        color: 'text-green-500',
+        bg: 'bg-green-50',
+        title: 'Payments Received Today',
+        body: `${todayPaid.length} payments totaling \u20B9${total.toLocaleString('en-IN')}`,
+        time: 'Today',
+        action: '/invoices',
+      })
+    }
+
+    if (notifs.length === 0) {
+      notifs.push({
+        id: 'all-good',
+        type: 'success',
+        icon: CheckCircle,
+        color: 'text-green-500',
+        bg: 'bg-green-50',
+        title: 'All Good!',
+        body: 'No pending alerts. Your business is running smoothly.',
+        time: 'Now',
+        action: '/dashboard',
+      })
+    }
+
+    setNotifications(notifs)
+    setUnreadCount(notifs.filter(n => n.type !== 'success').length)
+  }
 
   const handleLogout = async () => {
     await signOut(auth)
@@ -29,22 +119,32 @@ export default function Layout({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col" style={{ maxWidth: 480, margin: '0 auto', position: 'relative' }}>
-      {/* Top Header */}
+    <div className="min-h-screen bg-gray-50 flex flex-col"
+      style={{ maxWidth: 480, margin: '0 auto', position: 'relative' }}>
+
+      {/* Header */}
       <header className="bg-navy text-white px-4 pt-8 pb-4 sticky top-0 z-40 shadow-lg">
         <div className="flex items-center justify-between mb-2">
           <div>
             <p className="text-xs text-blue-300">Welcome back</p>
-            <h1 className="font-display font-bold text-base leading-tight truncate max-w-[220px]">
-              {business?.name || 'My Business'} 
+            <h1 className="font-display font-bold text-base leading-tight truncate max-w-[200px]">
+              {business?.name || 'My Business'}
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            <button className="relative p-2 bg-white/10 rounded-xl">
+            {/* Notification Bell */}
+            <button
+              onClick={() => { setShowNotifications(true); setUnreadCount(0) }}
+              className="relative p-2 bg-white/10 rounded-xl active:bg-white/20"
+            >
               <Bell size={18} className="text-white" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-alert rounded-full" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-white text-xs flex items-center justify-center font-bold">
+                  {unreadCount}
+                </span>
+              )}
             </button>
-            <button onClick={() => setShowMore(!showMore)} className="p-2 bg-white/10 rounded-xl">
+            <button onClick={() => setShowMore(!showMore)} className="p-2 bg-white/10 rounded-xl active:bg-white/20">
               <Menu size={18} className="text-white" />
             </button>
           </div>
@@ -63,11 +163,12 @@ export default function Layout({ children }) {
         </div>
       </header>
 
-      {/* Dropdown More Menu */}
+      {/* More Dropdown */}
       {showMore && (
         <>
           <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setShowMore(false)} />
-          <div className="fixed top-20 right-4 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 z-50 w-44" style={{ maxWidth: 'calc(480px - 2rem)', right: 'max(1rem, calc(50% - 224px))' }}>
+          <div className="fixed top-20 right-4 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 z-50 w-44"
+            style={{ right: 'max(1rem, calc(50% - 224px))' }}>
             <NavLink to="/reports" onClick={() => setShowMore(false)}
               className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
               <BarChart3 size={18} className="text-primary" /> Reports
@@ -76,6 +177,57 @@ export default function Layout({ children }) {
               className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 w-full">
               <LogOut size={18} /> Logout
             </button>
+          </div>
+        </>
+      )}
+
+      {/* Notifications Panel */}
+      {showNotifications && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setShowNotifications(false)} />
+          <div className="fixed top-0 right-0 h-full bg-white z-50 shadow-2xl flex flex-col"
+            style={{ width: '100%', maxWidth: 480, left: '50%', transform: 'translateX(-50%)' }}>
+            {/* Header */}
+            <div className="bg-navy text-white px-4 pt-8 pb-4 flex items-center justify-between">
+              <div>
+                <h2 className="font-display font-bold text-lg">Notifications</h2>
+                <p className="text-blue-300 text-xs">{notifications.length} alerts</p>
+              </div>
+              <button onClick={() => setShowNotifications(false)}
+                className="p-2 bg-white/10 rounded-xl">
+                <X size={20} className="text-white" />
+              </button>
+            </div>
+
+            {/* Notification List */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {notifications.map(n => (
+                <button
+                  key={n.id}
+                  onClick={() => { setShowNotifications(false); navigate(n.action) }}
+                  className="w-full bg-white rounded-2xl p-4 flex items-start gap-3 border border-gray-100 shadow-sm active:bg-gray-50 text-left"
+                >
+                  <div className={`w-10 h-10 ${n.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                    <n.icon size={18} className={n.color} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-navy">{n.title}</p>
+                    <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{n.body}</p>
+                    <p className="text-xs text-gray-300 mt-1">{n.time}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-gray-100">
+              <button
+                onClick={() => { loadNotifications(); }}
+                className="w-full py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl text-sm"
+              >
+                Refresh Notifications
+              </button>
+            </div>
           </div>
         </>
       )}
