@@ -1,12 +1,7 @@
 // src/pages/SimulatorPage.jsx
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import {
-  getProducts, getCustomers, getInvoices,
-  addProduct, addCustomer, addInvoice, markInvoicePaid,
-  updateCustomer, updateProduct
-} from '../lib/supabase'
-import { supabase } from '../lib/supabase'
+import { getProducts, getCustomers, getInvoices, supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 
@@ -616,5 +611,3 @@ export default function SimulatorPage() {
     </div>
   )
 }
-
-// v2
