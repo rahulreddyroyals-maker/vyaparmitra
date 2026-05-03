@@ -1,27 +1,27 @@
 // src/components/Layout.jsx
 import { useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { auth } from '../lib/firebase'
 import { signOut } from 'firebase/auth'
 import { useAuth } from '../contexts/AuthContext'
 import {
-  LayoutDashboard, Package, Users, FileText, BarChart3,
-  Menu, X, LogOut, Bell, MessageSquare, Smartphone
+  LayoutDashboard, Package, Users, FileText,
+  BarChart3, Smartphone, LogOut, Bell, Menu
 } from 'lucide-react'
 
 const NAV = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Home' },
   { to: '/products', icon: Package, label: 'Products' },
-  { to: '/customers', icon: Users, label: 'Customers' },
   { to: '/invoices', icon: FileText, label: 'Invoices' },
-  { to: '/reports', icon: BarChart3, label: 'Reports' },
-  { to: '/simulator', icon: Smartphone, label: 'WA Simulator', highlight: true },
+  { to: '/customers', icon: Users, label: 'Customers' },
+  { to: '/simulator', icon: Smartphone, label: 'Demo', highlight: true },
 ]
 
 export default function Layout({ children }) {
-  const { user, business } = useAuth()
+  const { business } = useAuth()
   const navigate = useNavigate()
-  const [open, setOpen] = useState(false)
+  const location = useLocation()
+  const [showMore, setShowMore] = useState(false)
 
   const handleLogout = async () => {
     await signOut(auth)
@@ -29,100 +29,89 @@ export default function Layout({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-light flex">
-      {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-navy text-white transform transition-transform duration-300 lg:relative lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="flex items-center justify-between p-5 border-b border-white/10">
+    <div className="min-h-screen bg-gray-50 flex flex-col" style={{ maxWidth: 480, margin: '0 auto', position: 'relative' }}>
+      {/* Top Header */}
+      <header className="bg-navy text-white px-4 pt-8 pb-4 sticky top-0 z-40 shadow-lg">
+        <div className="flex items-center justify-between mb-2">
           <div>
-            <h1 className="text-xl font-display font-bold">
-              <span className="text-white">Vyapar</span>
-              <span className="text-success">Mitra</span>
+            <p className="text-xs text-blue-300">Welcome back</p>
+            <h1 className="font-display font-bold text-base leading-tight truncate max-w-[220px]">
+              {business?.name || 'My Business'} 
             </h1>
-            <p className="text-xs text-blue-300 mt-0.5 truncate">{business?.name || 'My Business'}</p>
           </div>
-          <button onClick={() => setOpen(false)} className="lg:hidden text-white/60 hover:text-white">
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button className="relative p-2 bg-white/10 rounded-xl">
+              <Bell size={18} className="text-white" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-alert rounded-full" />
+            </button>
+            <button onClick={() => setShowMore(!showMore)} className="p-2 bg-white/10 rounded-xl">
+              <Menu size={18} className="text-white" />
+            </button>
+          </div>
         </div>
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 bg-white rounded-md flex items-center justify-center">
+            <span className="text-primary font-bold text-xs">V</span>
+          </div>
+          <span className="text-xs font-display font-bold">
+            <span className="text-white">Vyapar</span><span className="text-success">Mitra</span>
+          </span>
+          <span className="ml-auto flex items-center gap-1 text-xs text-green-300">
+            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+            Live
+          </span>
+        </div>
+      </header>
 
-        <nav className="p-4 space-y-1">
-          {NAV.map(({ to, icon: Icon, label, highlight }) => (
-            <NavLink
-              key={to}
-              to={to}
-              onClick={() => setOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                  isActive
-                    ? 'bg-primary text-white shadow-lg shadow-primary/30'
-                    : highlight
-                    ? 'text-green-300 hover:bg-white/10 hover:text-white border border-green-700/40'
-                    : 'text-blue-200 hover:bg-white/10 hover:text-white'
-                }`
-              }
-            >
-              <Icon size={18} />
-              <span className="flex-1">{label}</span>
-              {highlight && <span className="text-xs bg-success text-white px-1.5 py-0.5 rounded-full">Demo</span>}
+      {/* Dropdown More Menu */}
+      {showMore && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setShowMore(false)} />
+          <div className="fixed top-20 right-4 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 z-50 w-44" style={{ maxWidth: 'calc(480px - 2rem)', right: 'max(1rem, calc(50% - 224px))' }}>
+            <NavLink to="/reports" onClick={() => setShowMore(false)}
+              className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
+              <BarChart3 size={18} className="text-primary" /> Reports
             </NavLink>
-          ))}
-        </nav>
-
-        {/* WhatsApp CTA */}
-        <div className="mx-4 mt-4 p-4 bg-green-900/40 rounded-xl border border-green-700/40">
-          <div className="flex items-center gap-2 mb-2">
-            <MessageSquare size={16} className="text-green-400" />
-            <span className="text-xs font-bold text-green-400">WhatsApp Active</span>
+            <button onClick={handleLogout}
+              className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 w-full">
+              <LogOut size={18} /> Logout
+            </button>
           </div>
-          <p className="text-xs text-green-300">Send messages to manage your business</p>
-        </div>
-
-        <div className="absolute bottom-0 left-0 right-0 p-4">
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-sm font-medium text-blue-200 hover:bg-white/10 hover:text-white transition-all"
-          >
-            <LogOut size={18} />
-            Logout
-          </button>
-        </div>
-      </aside>
-
-      {/* Overlay */}
-      {open && (
-        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setOpen(false)} />
+        </>
       )}
 
-      {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Topbar */}
-        <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button onClick={() => setOpen(true)} className="lg:hidden text-gray-600 hover:text-navy">
-              <Menu size={22} />
-            </button>
-            <div>
-              <p className="text-xs text-gray-400">Welcome back,</p>
-              <p className="font-display font-bold text-navy text-lg">
-                {user?.profile?.name || business?.name || 'Business Owner'} 👋
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <button className="relative p-2 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-navy transition-all">
-              <Bell size={20} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-alert rounded-full"></span>
-            </button>
-            <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center">
-              <span className="text-primary font-bold text-sm">
-                {(business?.name || 'V')[0].toUpperCase()}
-              </span>
-            </div>
-          </div>
-        </header>
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto" style={{ paddingBottom: 80 }}>
+        {children}
+      </main>
 
-        <main className="flex-1 p-6 overflow-auto">{children}</main>
-      </div>
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 bg-white border-t border-gray-200 z-50"
+        style={{ width: '100%', maxWidth: 480, left: '50%', transform: 'translateX(-50%)' }}>
+        <div className="flex items-center justify-around px-1 py-2">
+          {NAV.map(({ to, icon: Icon, label, highlight }) => {
+            const active = location.pathname === to
+            return (
+              <NavLink key={to} to={to}
+                className="flex flex-col items-center gap-0.5 flex-1 py-1 relative">
+                <div className={`p-2 rounded-xl transition-all ${
+                  active ? 'bg-primary text-white shadow-md shadow-primary/40'
+                  : highlight ? 'bg-green-100 text-green-700'
+                  : 'text-gray-400'
+                }`}>
+                  <Icon size={19} />
+                </div>
+                <span className={`text-xs font-medium ${
+                  active ? 'text-primary' : highlight ? 'text-green-600' : 'text-gray-400'
+                }`}>{label}</span>
+                {highlight && !active && (
+                  <span className="absolute top-0 right-2 w-2 h-2 bg-success rounded-full" />
+                )}
+              </NavLink>
+            )
+          })}
+        </div>
+      </nav>
     </div>
   )
 }
