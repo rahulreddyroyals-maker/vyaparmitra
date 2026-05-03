@@ -5,16 +5,16 @@ import { getProducts, getCustomers, getInvoices, supabase } from '../lib/supabas
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 
-// ─── Intent Parser (runs in browser, no backend needed) ───────────────────────
+// --- Intent Parser (runs in browser, no backend needed) -----------------------
 function parseIntent(text, products, customers) {
   const t = text.trim()
   const tl = t.toLowerCase()
 
   // SALE: "sold 5 cement to Ramesh for 2500" or "5 cement Ramesh 2500"
   const salePatterns = [
-    /sold\s+(\d+)\s+(.+?)\s+to\s+(\w+)\s+for\s+(?:rs\.?|₹)?\s*(\d+)/i,
-    /(\d+)\s+(.+?)\s+(?:to\s+)?(\w+)\s+(?:for\s+)?(?:rs\.?|₹)?\s*(\d+)/i,
-    /becha\s+(\d+)\s+(.+?)\s+(\w+)\s+(?:ko\s+)?(?:rs\.?|₹)?\s*(\d+)/i,
+    /sold\s+(\d+)\s+(.+?)\s+to\s+(\w+)\s+for\s+(?:rs\.?|)?\s*(\d+)/i,
+    /(\d+)\s+(.+?)\s+(?:to\s+)?(\w+)\s+(?:for\s+)?(?:rs\.?|)?\s*(\d+)/i,
+    /becha\s+(\d+)\s+(.+?)\s+(\w+)\s+(?:ko\s+)?(?:rs\.?|)?\s*(\d+)/i,
   ]
   for (const p of salePatterns) {
     const m = t.match(p)
@@ -23,8 +23,8 @@ function parseIntent(text, products, customers) {
 
   // PAYMENT: "Ramesh paid 2000" or "received 2000 from Ramesh"
   const payPatterns = [
-    /(\w+)\s+(?:paid|diya|ne diya)\s+(?:rs\.?|₹)?\s*(\d+)/i,
-    /received\s+(?:rs\.?|₹)?\s*(\d+)\s+from\s+(\w+)/i,
+    /(\w+)\s+(?:paid|diya|ne diya)\s+(?:rs\.?|)?\s*(\d+)/i,
+    /received\s+(?:rs\.?|)?\s*(\d+)\s+from\s+(\w+)/i,
     /(\d+)\s+(?:received\s+)?from\s+(\w+)/i,
   ]
   for (const p of payPatterns) {
@@ -69,56 +69,56 @@ function parseIntent(text, products, customers) {
   return { intent: 'UNKNOWN' }
 }
 
-// ─── Response Generators ──────────────────────────────────────────────────────
+// --- Response Generators ------------------------------------------------------
 function buildSaleReply(parsed, invoiceNo, isNewCustomer, lowStockWarning) {
-  let r = `✅ *Sale recorded successfully!*\n\n`
-  r += `📦 ${parsed.qty}x ${parsed.product}\n`
-  r += `👤 Customer: ${parsed.customer}\n`
-  r += `💰 Amount: ₹${parsed.amount.toLocaleString('en-IN')}\n`
-  r += `📄 Invoice: #${invoiceNo}\n`
-  r += `⏳ Payment: Pending\n`
-  if (isNewCustomer) r += `\n🆕 New customer "${parsed.customer}" added automatically!`
-  if (lowStockWarning) r += `\n\n⚠️ *Low stock alert!* Only ${lowStockWarning} units of ${parsed.product} remaining.`
+  let r = ` *Sale recorded successfully!*\n\n`
+  r += ` ${parsed.qty}x ${parsed.product}\n`
+  r += ` Customer: ${parsed.customer}\n`
+  r += ` Amount: ${parsed.amount.toLocaleString('en-IN')}\n`
+  r += ` Invoice: #${invoiceNo}\n`
+  r += ` Payment: Pending\n`
+  if (isNewCustomer) r += `\n New customer "${parsed.customer}" added automatically!`
+  if (lowStockWarning) r += `\n\n *Low stock alert!* Only ${lowStockWarning} units of ${parsed.product} remaining.`
   return r
 }
 
 function buildPaymentReply(customerName, amount, remaining) {
-  let r = `✅ *Payment recorded!*\n\n`
-  r += `👤 Customer: ${customerName}\n`
-  r += `💵 Paid: ₹${amount.toLocaleString('en-IN')}\n`
+  let r = ` *Payment recorded!*\n\n`
+  r += ` Customer: ${customerName}\n`
+  r += ` Paid: ${amount.toLocaleString('en-IN')}\n`
   r += remaining > 0
-    ? `💳 Still due: ₹${remaining.toLocaleString('en-IN')}`
-    : `🎉 All dues cleared! Great!`
+    ? ` Still due: ${remaining.toLocaleString('en-IN')}`
+    : ` All dues cleared! Great!`
   return r
 }
 
 function buildStockReply(products, productName) {
   if (productName) {
     const p = products.find(pr => pr.name.toLowerCase().includes(productName.toLowerCase()))
-    if (!p) return `❌ Product "${productName}" not found.\n\nType "stock" to see all products.`
+    if (!p) return ` Product "${productName}" not found.\n\nType "stock" to see all products.`
     const isLow = p.stock <= (p.low_stock_threshold || 5)
-    return `📦 *${p.name}*\n\nStock: ${p.stock} units ${isLow ? '⚠️ LOW' : '✅ OK'}\nPrice: ₹${p.price}/unit\nAlert at: ${p.low_stock_threshold || 5} units`
+    return ` *${p.name}*\n\nStock: ${p.stock} units ${isLow ? ' LOW' : ' OK'}\nPrice: ${p.price}/unit\nAlert at: ${p.low_stock_threshold || 5} units`
   }
-  if (!products.length) return `📦 No products added yet.\n\nGo to Products page to add your inventory.`
-  let r = `📦 *Stock Summary*\n\n`
+  if (!products.length) return ` No products added yet.\n\nGo to Products page to add your inventory.`
+  let r = ` *Stock Summary*\n\n`
   products.forEach(p => {
     const isLow = p.stock <= (p.low_stock_threshold || 5)
-    r += `${isLow ? '⚠️' : '✅'} ${p.name}: ${p.stock} units @ ₹${p.price}\n`
+    r += `${isLow ? '' : ''} ${p.name}: ${p.stock} units @ ${p.price}\n`
   })
   return r
 }
 
 function buildCustomerReply(customer, invoices) {
-  if (!customer) return `❌ Customer not found. Check the name and try again.`
+  if (!customer) return ` Customer not found. Check the name and try again.`
   const custInvoices = invoices.filter(i => i.customer_id === customer.id)
   const total = custInvoices.reduce((s, i) => s + (i.total_amount || 0), 0)
   const pending = custInvoices.filter(i => i.status === 'pending').length
-  let r = `👤 *${customer.name}*\n\n`
-  r += `📋 Total orders: ${custInvoices.length}\n`
-  r += `💰 Total business: ₹${total.toLocaleString('en-IN')}\n`
-  r += `💳 Due amount: ₹${(customer.total_due || 0).toLocaleString('en-IN')}\n`
-  r += `⏳ Pending invoices: ${pending}`
-  if (customer.last_order_date) r += `\n📅 Last order: ${format(new Date(customer.last_order_date), 'dd MMM yyyy')}`
+  let r = ` *${customer.name}*\n\n`
+  r += ` Total orders: ${custInvoices.length}\n`
+  r += ` Total business: ${total.toLocaleString('en-IN')}\n`
+  r += ` Due amount: ${(customer.total_due || 0).toLocaleString('en-IN')}\n`
+  r += ` Pending invoices: ${pending}`
+  if (customer.last_order_date) r += `\n Last order: ${format(new Date(customer.last_order_date), 'dd MMM yyyy')}`
   return r
 }
 
@@ -130,41 +130,41 @@ function buildInsightsReply(invoices, bizName) {
   const totalDue = invoices.filter(i => i.status === 'pending').reduce((s, i) => s + (i.total_amount || 0), 0)
   const pendingCount = invoices.filter(i => i.status === 'pending').length
   const trend = yestSales > 0
-    ? todaySales >= yestSales ? `📈 Up ${Math.round(((todaySales - yestSales) / yestSales) * 100)}% vs yesterday`
-    : `📉 Down ${Math.round(((yestSales - todaySales) / yestSales) * 100)}% vs yesterday`
-    : `📊 New data today`
-  let r = `📊 *${bizName} — Business Report*\n\n`
-  r += `💰 Today's sales: ₹${todaySales.toLocaleString('en-IN')}\n`
+    ? todaySales >= yestSales ? ` Up ${Math.round(((todaySales - yestSales) / yestSales) * 100)}% vs yesterday`
+    : ` Down ${Math.round(((yestSales - todaySales) / yestSales) * 100)}% vs yesterday`
+    : ` New data today`
+  let r = ` *${bizName}  Business Report*\n\n`
+  r += ` Today's sales: ${todaySales.toLocaleString('en-IN')}\n`
   r += `${trend}\n\n`
-  r += `💳 Pending payments: ₹${totalDue.toLocaleString('en-IN')}\n`
-  r += `📄 Pending invoices: ${pendingCount}\n`
-  r += `📦 Total products: ${invoices.length} transactions`
+  r += ` Pending payments: ${totalDue.toLocaleString('en-IN')}\n`
+  r += ` Pending invoices: ${pendingCount}\n`
+  r += ` Total products: ${invoices.length} transactions`
   return r
 }
 
 function buildInvoiceListReply(invoices, customers) {
   const pending = invoices.filter(i => i.status === 'pending').slice(0, 5)
-  if (!pending.length) return `✅ No pending invoices!\n\nAll payments are clear. Great work!`
+  if (!pending.length) return ` No pending invoices!\n\nAll payments are clear. Great work!`
   const total = pending.reduce((s, i) => s + (i.total_amount || 0), 0)
-  let r = `⏳ *Pending Invoices (${pending.length})*\n\n`
+  let r = ` *Pending Invoices (${pending.length})*\n\n`
   pending.forEach(inv => {
     const cust = customers.find(c => c.id === inv.customer_id)
-    r += `• ${cust?.name || 'Unknown'}: ₹${inv.total_amount?.toLocaleString('en-IN')}\n`
+    r += ` ${cust?.name || 'Unknown'}: ${inv.total_amount?.toLocaleString('en-IN')}\n`
   })
-  r += `\n💰 Total pending: ₹${total.toLocaleString('en-IN')}`
+  r += `\n Total pending: ${total.toLocaleString('en-IN')}`
   return r
 }
 
 function buildLowStockReply(products) {
   const low = products.filter(p => p.stock <= (p.low_stock_threshold || 5))
-  if (!low.length) return `✅ All products are well stocked!\n\nNo reorders needed right now.`
-  let r = `⚠️ *Low Stock Alert!*\n\n`
-  low.forEach(p => { r += `• ${p.name}: only ${p.stock} left (alert: ${p.low_stock_threshold || 5})\n` })
+  if (!low.length) return ` All products are well stocked!\n\nNo reorders needed right now.`
+  let r = ` *Low Stock Alert!*\n\n`
+  low.forEach(p => { r += ` ${p.name}: only ${p.stock} left (alert: ${p.low_stock_threshold || 5})\n` })
   r += `\nConsider reordering these items soon.`
   return r
 }
 
-// ─── Preset demo messages ─────────────────────────────────────────────────────
+// --- Preset demo messages -----------------------------------------------------
 const QUICK_MSGS = [
   { label: 'Record Sale', text: 'Sold 5 cement to Ramesh for 2500', color: 'bg-blue-100 text-blue-800' },
   { label: 'Payment In', text: 'Ramesh paid 2000', color: 'bg-green-100 text-green-800' },
@@ -211,7 +211,7 @@ export default function SimulatorPage() {
 
   useEffect(() => {
     loadData()
-    addBotMsg(`👋 Welcome to VyaparMitra WhatsApp Simulator!\n\nType any business message or use the quick buttons below.\n\nExample: *"Sold 5 cement to Ramesh for 2500"*`)
+    addBotMsg(` Welcome to VyaparMitra WhatsApp Simulator!\n\nType any business message or use the quick buttons below.\n\nExample: *"Sold 5 cement to Ramesh for 2500"*`)
   }, [business])
 
   useEffect(() => {
@@ -286,13 +286,13 @@ export default function SimulatorPage() {
         }
         const invoiceNo = invoice?.id?.slice(0, 8).toUpperCase() || 'NEW001'
         reply = buildSaleReply(parsed, invoiceNo, isNewCustomer, lowStockWarning)
-        eventLabel = `✅ Invoice created · ₹${parsed.amount.toLocaleString('en-IN')} pending from ${parsed.customer}`
+        eventLabel = ` Invoice created  ${parsed.amount.toLocaleString('en-IN')} pending from ${parsed.customer}`
 
       } else if (parsed.intent === 'PAYMENT') {
         const freshCustomers = (await getCustomers(business.id)).data || []
         const cust = freshCustomers.find(c => c.name.toLowerCase().includes(parsed.customer.toLowerCase()))
         if (!cust) {
-          reply = `❌ Customer "${parsed.customer}" not found.\n\nKnown customers: ${freshCustomers.map(c => c.name).join(', ') || 'none yet'}`
+          reply = ` Customer "${parsed.customer}" not found.\n\nKnown customers: ${freshCustomers.map(c => c.name).join(', ') || 'none yet'}`
         } else {
           const { data: pendingInv } = await supabase.from('invoices').select('*')
             .eq('customer_id', cust.id).eq('status', 'pending')
@@ -307,7 +307,7 @@ export default function SimulatorPage() {
           const newDue = Math.max(0, (cust.total_due || 0) - parsed.amount)
           await supabase.from('customers').update({ total_due: newDue }).eq('id', cust.id)
           reply = buildPaymentReply(cust.name, parsed.amount, newDue)
-          eventLabel = `💰 ₹${parsed.amount.toLocaleString('en-IN')} received from ${cust.name}`
+          eventLabel = ` ${parsed.amount.toLocaleString('en-IN')} received from ${cust.name}`
         }
 
       } else if (parsed.intent === 'STOCK_QUERY') {
@@ -334,7 +334,7 @@ export default function SimulatorPage() {
         reply = buildLowStockReply(freshProds)
 
       } else {
-        reply = `🤔 Didn't understand that.\n\nHere's what you can say:\n\n📦 *Record sale:*\n"Sold 5 cement to Ramesh for 2500"\n\n💰 *Record payment:*\n"Ramesh paid 2000"\n\n📊 *Business report:*\n"How is my business?"\n\n📋 *Check dues:*\n"Show pending invoices"\n\n📦 *Check stock:*\n"How much cement left?"\n\n👤 *Customer info:*\n"Ramesh history"`
+        reply = ` Didn't understand that.\n\nHere's what you can say:\n\n *Record sale:*\n"Sold 5 cement to Ramesh for 2500"\n\n *Record payment:*\n"Ramesh paid 2000"\n\n *Business report:*\n"How is my business?"\n\n *Check dues:*\n"Show pending invoices"\n\n *Check stock:*\n"How much cement left?"\n\n *Customer info:*\n"Ramesh history"`
       }
 
       await supabase.from('whatsapp_logs').insert({
@@ -344,7 +344,7 @@ export default function SimulatorPage() {
 
     } catch (err) {
       console.error('Simulator error:', err)
-      reply = `⚠️ Something went wrong. Please try again.`
+      reply = ` Something went wrong. Please try again.`
     }
 
     addBotMsg(reply)
@@ -392,9 +392,9 @@ export default function SimulatorPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-display font-bold text-navy flex items-center gap-2">
-            <span className="text-2xl">💬</span> WhatsApp Simulator
+            <span className="text-2xl"></span> WhatsApp Simulator
           </h1>
-          <p className="text-sm text-gray-500">Live demo — messages update real Supabase data</p>
+          <p className="text-sm text-gray-500">Live demo  messages update real Supabase data</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -405,7 +405,7 @@ export default function SimulatorPage() {
                 : 'bg-success text-white hover:bg-green-700'
             }`}
           >
-            {isDemoRunning ? '⏹ Stop Demo' : '▶ Run Auto Demo'}
+            {isDemoRunning ? ' Stop Demo' : ' Run Auto Demo'}
           </button>
         </div>
       </div>
@@ -414,7 +414,7 @@ export default function SimulatorPage() {
       {liveEvent && (
         <div className="bg-success/10 border border-success/30 text-success rounded-xl px-4 py-3 text-sm font-medium flex items-center gap-2 animate-pulse">
           <span className="w-2 h-2 bg-success rounded-full"></span>
-          {liveEvent} — <span className="font-normal text-green-700">Supabase updated live</span>
+          {liveEvent}  <span className="font-normal text-green-700">Supabase updated live</span>
         </div>
       )}
 
@@ -428,7 +428,7 @@ export default function SimulatorPage() {
             </div>
             <div>
               <p className="text-white font-semibold text-sm">{business?.name || 'My Business'}</p>
-              <p className="text-green-200 text-xs">VyaparMitra Bot • Online</p>
+              <p className="text-green-200 text-xs">VyaparMitra Bot  Online</p>
             </div>
             <div className="ml-auto flex items-center gap-1">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
@@ -463,7 +463,7 @@ export default function SimulatorPage() {
                     />
                     <p className="text-xs text-gray-400 mt-1 text-right">
                       {format(msg.time, 'hh:mm a')}
-                      {msg.type === 'user' && ' ✓✓'}
+                      {msg.type === 'user' && ' '}
                     </p>
                   </div>
                 )}
@@ -521,13 +521,13 @@ export default function SimulatorPage() {
               <div>
                 <p className="text-xs text-blue-300 mb-0.5">Today's Revenue</p>
                 <p className="text-2xl font-display font-bold text-white">
-                  ₹{invoices.filter(i => i.created_at?.startsWith(new Date().toISOString().split('T')[0])).reduce((s,i) => s+(i.total_amount||0),0).toLocaleString('en-IN')}
+                  {invoices.filter(i => i.created_at?.startsWith(new Date().toISOString().split('T')[0])).reduce((s,i) => s+(i.total_amount||0),0).toLocaleString('en-IN')}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-blue-300 mb-0.5">Pending Payments</p>
                 <p className="text-xl font-display font-bold text-alert">
-                  ₹{invoices.filter(i=>i.status==='pending').reduce((s,i)=>s+(i.total_amount||0),0).toLocaleString('en-IN')}
+                  {invoices.filter(i=>i.status==='pending').reduce((s,i)=>s+(i.total_amount||0),0).toLocaleString('en-IN')}
                 </p>
               </div>
               <div className="grid grid-cols-3 gap-2">
@@ -565,23 +565,23 @@ export default function SimulatorPage() {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
             <p className="text-xs font-bold text-gray-400 uppercase mb-2">Customer Dues</p>
             {customers.filter(c => (c.total_due||0) > 0).length === 0 ? (
-              <p className="text-xs text-gray-400">All dues cleared! ✓</p>
+              <p className="text-xs text-gray-400">All dues cleared! </p>
             ) : customers.filter(c=>(c.total_due||0)>0).slice(0,4).map(c => (
               <div key={c.id} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
                 <span className="text-xs font-medium text-navy">{c.name}</span>
-                <span className="text-xs font-bold text-red-500">₹{c.total_due?.toLocaleString('en-IN')}</span>
+                <span className="text-xs font-bold text-red-500">{c.total_due?.toLocaleString('en-IN')}</span>
               </div>
             ))}
           </div>
 
           {/* Demo script */}
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-            <p className="text-xs font-bold text-amber-800 mb-2">▶ Auto Demo Script</p>
+            <p className="text-xs font-bold text-amber-800 mb-2"> Auto Demo Script</p>
             {DEMO_SCRIPT.map((msg, i) => (
               <div key={i} className={`flex items-start gap-2 py-1 text-xs ${
                 isDemoRunning && demoIdx === i ? 'text-amber-900 font-semibold' : 'text-amber-700'
               }`}>
-                <span>{isDemoRunning && demoIdx === i ? '▶' : `${i+1}.`}</span>
+                <span>{isDemoRunning && demoIdx === i ? '' : `${i+1}.`}</span>
                 <span className="truncate">{msg}</span>
               </div>
             ))}
@@ -594,9 +594,9 @@ export default function SimulatorPage() {
         <p className="text-sm font-bold text-navy mb-3">How to use this for client demos</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { step: '1', text: 'Click "▶ Run Auto Demo" to show the full flow automatically' },
+            { step: '1', text: 'Click " Run Auto Demo" to show the full flow automatically' },
             { step: '2', text: 'Watch stats on the right update live as each message is processed' },
-            { step: '3', text: 'Open Dashboard in another tab — it updates in real time too' },
+            { step: '3', text: 'Open Dashboard in another tab  it updates in real time too' },
             { step: '4', text: 'Type custom messages to demo your specific product/customer names' },
           ].map(s => (
             <div key={s.step} className="flex gap-2">
