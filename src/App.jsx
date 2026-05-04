@@ -2,6 +2,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { LanguageProvider } from './contexts/LanguageContext'
 import Layout from './components/Layout'
 import AuthPage from './pages/AuthPage'
 import OnboardingPage from './pages/OnboardingPage'
@@ -66,22 +67,23 @@ function OnboardingRoute() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Toaster
-          position="top-center"
-          toastOptions={{
-            style: { borderRadius: '12px', fontFamily: "'Noto Sans', sans-serif", fontSize: '14px' },
-            success: { iconTheme: { primary: '#16A34A', secondary: '#fff' } },
-          }}
-        />
-        <Routes>
-          <Route path="/auth" element={<AuthRoutes />} />
-          <Route path="/onboarding" element={<OnboardingRoute />} />
-          <Route path="/*" element={<ProtectedRoutes />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Toaster
+            position="top-center"
+            toastOptions={{
+              style: { borderRadius: '12px', fontFamily: "'Noto Sans', sans-serif", fontSize: '14px' },
+              success: { iconTheme: { primary: '#16A34A', secondary: '#fff' } },
+            }}
+          />
+          <Routes>
+            <Route path="/auth" element={<AuthRoutes />} />
+            <Route path="/onboarding" element={<OnboardingRoute />} />
+            <Route path="/*" element={<ProtectedRoutes />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </LanguageProvider>
   )
 }
-

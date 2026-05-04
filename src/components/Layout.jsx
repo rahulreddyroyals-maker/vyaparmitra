@@ -4,24 +4,26 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { auth } from '../lib/firebase'
 import { signOut } from 'firebase/auth'
 import { useAuth } from '../contexts/AuthContext'
+import { useLang } from '../contexts/LanguageContext'
 import { getInvoices, getProducts } from '../lib/supabase'
 import {
   LayoutDashboard, Package, Users, FileText,
   BarChart3, Smartphone, LogOut, Bell, Menu, X,
-  AlertTriangle, IndianRupee, CheckCircle
+  AlertTriangle, IndianRupee, CheckCircle, Languages
 } from 'lucide-react'
 import { format } from 'date-fns'
 
-const NAV = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Home' },
-  { to: '/products', icon: Package, label: 'Products' },
-  { to: '/invoices', icon: FileText, label: 'Invoices' },
-  { to: '/customers', icon: Users, label: 'Customers' },
-  { to: '/simulator', icon: Smartphone, label: 'Demo', highlight: true },
+const NAV_KEYS = [
+  { to: '/dashboard', icon: LayoutDashboard, key: 'home' },
+  { to: '/products', icon: Package, key: 'products' },
+  { to: '/invoices', icon: FileText, key: 'invoices' },
+  { to: '/customers', icon: Users, key: 'customers' },
+  { to: '/simulator', icon: Smartphone, key: 'demo', highlight: true },
 ]
 
 export default function Layout({ children }) {
   const { business } = useAuth()
+  const { lang, switchLang, t } = useLang()
   const navigate = useNavigate()
   const location = useLocation()
   const [showMore, setShowMore] = useState(false)
@@ -54,7 +56,7 @@ export default function Layout({ children }) {
         icon: IndianRupee,
         color: 'text-orange-500',
         bg: 'bg-orange-50',
-        title: 'Pending Payments',
+        title: t('pendingPaymentsAlert'),
         body: `${pending.length} invoices worth \u20B9${total.toLocaleString('en-IN')} are unpaid`,
         time: 'Now',
         action: '/invoices',
@@ -70,7 +72,7 @@ export default function Layout({ children }) {
         icon: AlertTriangle,
         color: 'text-red-500',
         bg: 'bg-red-50',
-        title: 'Low Stock Alert',
+        title: t('lowStockAlertTitle'),
         body: `${p.name} has only ${p.stock} units left`,
         time: 'Today',
         action: '/products',
@@ -88,7 +90,7 @@ export default function Layout({ children }) {
         icon: CheckCircle,
         color: 'text-green-500',
         bg: 'bg-green-50',
-        title: 'Payments Received Today',
+        title: t('paymentsReceivedToday'),
         body: `${todayPaid.length} payments totaling \u20B9${total.toLocaleString('en-IN')}`,
         time: 'Today',
         action: '/invoices',
@@ -102,8 +104,8 @@ export default function Layout({ children }) {
         icon: CheckCircle,
         color: 'text-green-500',
         bg: 'bg-green-50',
-        title: 'All Good!',
-        body: 'No pending alerts. Your business is running smoothly.',
+        title: t('allGood'),
+        body: t('allGoodSub'),
         time: 'Now',
         action: '/dashboard',
       })
@@ -144,6 +146,13 @@ export default function Layout({ children }) {
                 </span>
               )}
             </button>
+            <button
+              onClick={() => switchLang(lang === 'en' ? 'te' : 'en')}
+              className="p-2 bg-white/10 rounded-xl active:bg-white/20 flex items-center gap-1"
+              title={lang === 'en' ? 'Switch to Telugu' : 'English కి మార్చండి'}
+            >
+              <span className="text-white text-xs font-bold">{lang === 'en' ? 'తె' : 'EN'}</span>
+            </button>
             <button onClick={() => setShowMore(!showMore)} className="p-2 bg-white/10 rounded-xl active:bg-white/20">
               <Menu size={18} className="text-white" />
             </button>
@@ -171,11 +180,11 @@ export default function Layout({ children }) {
             style={{ right: 'max(1rem, calc(50% - 224px))' }}>
             <NavLink to="/reports" onClick={() => setShowMore(false)}
               className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
-              <BarChart3 size={18} className="text-primary" /> Reports
+              <BarChart3 size={18} className="text-primary" /> {t('reports')}
             </NavLink>
             <button onClick={handleLogout}
               className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 w-full">
-              <LogOut size={18} /> Logout
+              <LogOut size={18} /> {t('logout')}
             </button>
           </div>
         </>
@@ -190,8 +199,8 @@ export default function Layout({ children }) {
             {/* Header */}
             <div className="bg-navy text-white px-4 pt-8 pb-4 flex items-center justify-between">
               <div>
-                <h2 className="font-display font-bold text-lg">Notifications</h2>
-                <p className="text-blue-300 text-xs">{notifications.length} alerts</p>
+                <h2 className="font-display font-bold text-lg">{t('notifications')}</h2>
+                <p className="text-blue-300 text-xs">{notifications.length} {t('alerts')}</p>
               </div>
               <button onClick={() => setShowNotifications(false)}
                 className="p-2 bg-white/10 rounded-xl">
@@ -225,7 +234,7 @@ export default function Layout({ children }) {
                 onClick={() => { loadNotifications(); }}
                 className="w-full py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl text-sm"
               >
-                Refresh Notifications
+                {t('refreshNotifications')}
               </button>
             </div>
           </div>
@@ -241,7 +250,7 @@ export default function Layout({ children }) {
       <nav className="fixed bottom-0 bg-white border-t border-gray-200 z-50"
         style={{ width: '100%', maxWidth: 480, left: '50%', transform: 'translateX(-50%)' }}>
         <div className="flex items-center justify-around px-1 py-2">
-          {NAV.map(({ to, icon: Icon, label, highlight }) => {
+          {NAV_KEYS.map(({ to, icon: Icon, key, highlight }) => {
             const active = location.pathname === to
             return (
               <NavLink key={to} to={to}
@@ -255,7 +264,7 @@ export default function Layout({ children }) {
                 </div>
                 <span className={`text-xs font-medium ${
                   active ? 'text-primary' : highlight ? 'text-green-600' : 'text-gray-400'
-                }`}>{label}</span>
+                }`}>{t(key)}</span>
                 {highlight && !active && (
                   <span className="absolute top-0 right-2 w-2 h-2 bg-success rounded-full" />
                 )}
