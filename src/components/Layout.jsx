@@ -9,7 +9,7 @@ import { getInvoices, getProducts } from '../lib/supabase'
 import {
   LayoutDashboard, Package, Users, FileText,
   BarChart3, Smartphone, LogOut, Bell, Menu, X,
-  AlertTriangle, IndianRupee, CheckCircle, Languages
+  AlertTriangle, IndianRupee, CheckCircle, Languages, Crown
 } from 'lucide-react'
 import { format } from 'date-fns'
 
@@ -178,6 +178,10 @@ export default function Layout({ children }) {
           <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setShowMore(false)} />
           <div className="fixed top-20 right-4 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 z-50 w-44"
             style={{ right: 'max(1rem, calc(50% - 224px))' }}>
+            <NavLink to="/pricing" onClick={() => setShowMore(false)}
+              className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-amber-600 hover:bg-amber-50">
+              <Crown size={18} className="text-amber-500" /> {lang === 'te' ? 'Premium' : 'Premium'}
+            </NavLink>
             <NavLink to="/reports" onClick={() => setShowMore(false)}
               className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
               <BarChart3 size={18} className="text-primary" /> {t('reports')}

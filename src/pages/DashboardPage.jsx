@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useLang } from '../contexts/LanguageContext'
+import PremiumBanner from '../components/PremiumBanner'
 import { getInvoices, getProducts, getCustomers } from '../lib/supabase'
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { Plus, FileText, Users, AlertTriangle, Package, TrendingUp, TrendingDown, ChevronRight, IndianRupee } from 'lucide-react'
@@ -61,6 +62,11 @@ export default function DashboardPage() {
 
   return (
     <div className="pb-4">
+      {/* Premium Banner */}
+      <div className="mx-4 mt-4 mb-2">
+        <PremiumBanner compact />
+      </div>
+
       {/* Hero Stats Card */}
       <div className="bg-gradient-to-br from-primary to-[#1d4ed8] mx-4 mt-4 rounded-3xl p-5 text-white shadow-xl shadow-primary/30">
         <p className="text-blue-200 text-xs font-medium mb-1">Total Revenue</p>

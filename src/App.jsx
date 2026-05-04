@@ -12,6 +12,7 @@ import CustomersPage from './pages/CustomersPage'
 import InvoicesPage from './pages/InvoicesPage'
 import ReportsPage from './pages/ReportsPage'
 import SimulatorPage from './pages/SimulatorPage'
+import PricingPage from './pages/PricingPage'
 
 function ProtectedRoutes() {
   const { user, onboarded, loading } = useAuth()
@@ -43,6 +44,7 @@ function ProtectedRoutes() {
         <Route path="/invoices/new" element={<InvoicesPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/simulator" element={<SimulatorPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Layout>
