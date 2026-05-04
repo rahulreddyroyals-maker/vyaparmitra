@@ -60,19 +60,49 @@ export default function PricingPage() {
   }
 
   const startTrial = async () => {
+    if (!business?.id || !user?.uid) {
+      toast.error('Business or user not found. Please refresh.')
+      return
+    }
     setActivating(true)
     const trialEnd = addDays(new Date(), 30).toISOString()
-    const { error } = await supabase.from('subscriptions').upsert({
-      business_id: business.id,
-      user_id: user.uid,
-      plan: 'trial',
-      status: 'trial',
-      trial_end: trialEnd,
-      created_at: new Date().toISOString(),
-    }, { onConflict: 'business_id' })
+    
+    // First try insert, then update if exists
+    const { data: existing } = await supabase
+      .from('subscriptions')
+      .select('id')
+      .eq('business_id', business.id)
+      .maybeSingle()
+
+    let error
+    if (existing) {
+      // Update existing
+      const res = await supabase
+        .from('subscriptions')
+        .update({ plan: 'trial', status: 'trial', trial_end: trialEnd, updated_at: new Date().toISOString() })
+        .eq('business_id', business.id)
+      error = res.error
+    } else {
+      // Fresh insert
+      const res = await supabase
+        .from('subscriptions')
+        .insert({
+          business_id: business.id,
+          user_id: user.uid,
+          plan: 'trial',
+          status: 'trial',
+          trial_end: trialEnd,
+        })
+      error = res.error
+    }
+
     setActivating(false)
-    if (error) return toast.error('Failed to start trial')
-    toast.success(lang === 'te' ? '30 రోజుల ట్రయల్ ప్రారంభమైంది!' : '30-day trial started!')
+    if (error) {
+      console.error('Trial error:', error)
+      toast.error(`Failed: ${error.message}`)
+      return
+    }
+    toast.success(lang === 'te' ? '30 రోజుల ట్రయల్ ప్రారంభమైంది! ✅' : '30-day trial started! ✅')
     loadSubscription()
   }
 
