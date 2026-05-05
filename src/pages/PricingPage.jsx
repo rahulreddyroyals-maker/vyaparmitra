@@ -108,6 +108,7 @@ export default function PricingPage() {
 
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState(null)
+  const [paying, setPaying] = useState(false)
 
   const handleUpgrade = (plan) => {
     setSelectedPlan(plan)
@@ -115,9 +116,115 @@ export default function PricingPage() {
   }
 
   const confirmPayment = () => {
-    // Copy UPI ID to clipboard
     navigator.clipboard?.writeText('vyaparmitra@upi').catch(() => {})
     toast.success(lang === 'te' ? 'UPI ID కాపీ అయింది!' : 'UPI ID copied!')
+  }
+
+  const loadRazorpay = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) return resolve(true)
+      const script = document.createElement('script')
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+      script.onload = () => resolve(true)
+      script.onerror = () => resolve(false)
+      document.body.appendChild(script)
+    })
+  }
+
+  const payWithRazorpay = async () => {
+    setPaying(true)
+    const loaded = await loadRazorpay()
+    if (!loaded) {
+      toast.error('Payment gateway failed to load. Try UPI instead.')
+      setPaying(false)
+      return
+    }
+
+    const amount = selectedPlan === 'yearly' ? YEARLY : MONTHLY
+    const amountPaise = amount * 100 // Razorpay uses paise
+
+    const options = {
+      key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_placeholder',
+      amount: amountPaise,
+      currency: 'INR',
+      name: 'VyaparMitra',
+      description: `Premium ${selectedPlan === 'yearly' ? 'Yearly' : 'Monthly'} Plan`,
+      image: 'https://vyaparmitra.netlify.app/icon-192.png',
+      prefill: {
+        name: business?.name || '',
+        contact: user?.phoneNumber || '',
+      },
+      notes: {
+        business_id: business?.id,
+        user_id: user?.uid,
+        plan: selectedPlan,
+        business_name: business?.name,
+      },
+      theme: { color: '#2563EB' },
+      handler: async (response) => {
+        // Payment successful - activate subscription
+        await activateSubscription(response.razorpay_payment_id, selectedPlan, amount)
+      },
+      modal: {
+        ondismiss: () => {
+          setPaying(false)
+          toast(lang === 'te' ? 'చెల్లింపు రద్దు చేయబడింది' : 'Payment cancelled')
+        }
+      }
+    }
+
+    const rzp = new window.Razorpay(options)
+    rzp.on('payment.failed', (response) => {
+      setPaying(false)
+      toast.error(`Payment failed: ${response.error.description}`)
+    })
+    rzp.open()
+    setPaying(false)
+  }
+
+  const activateSubscription = async (paymentId, plan, amount) => {
+    const days = plan === 'yearly' ? 365 : 30
+    const expiresAt = addDays(new Date(), days).toISOString()
+
+    const { data: existing } = await supabase
+      .from('subscriptions')
+      .select('id')
+      .eq('business_id', business.id)
+      .maybeSingle()
+
+    const subData = {
+      plan: 'premium',
+      status: 'active',
+      billing_cycle: plan,
+      amount,
+      payment_ref: paymentId,
+      starts_at: new Date().toISOString(),
+      expires_at: expiresAt,
+      updated_at: new Date().toISOString(),
+    }
+
+    let error
+    if (existing) {
+      const res = await supabase.from('subscriptions').update(subData).eq('business_id', business.id)
+      error = res.error
+    } else {
+      const res = await supabase.from('subscriptions').insert({
+        ...subData, business_id: business.id, user_id: user.uid
+      })
+      error = res.error
+    }
+
+    if (error) {
+      console.error('Activation error:', error)
+      toast.error('Payment received but activation failed. Contact support.')
+      return
+    }
+
+    setShowPaymentModal(false)
+    toast.success(lang === 'te'
+      ? 'Premium యాక్టివేట్ అయింది! అన్ని ఫీచర్లు అన్‌లాక్ అయ్యాయి!'
+      : 'Premium activated! All features unlocked!')
+    loadSubscription()
   }
 
   const trialDaysLeft = subscription?.trial_end
@@ -439,87 +546,93 @@ export default function PricingPage() {
 
       {/* Payment Modal */}
       {showPaymentModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center p-0">
-          <div className="bg-white w-full max-w-md rounded-t-3xl shadow-2xl p-6 pb-8">
-            {/* Handle */}
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center">
+          <div className="bg-white w-full max-w-md rounded-t-3xl shadow-2xl p-6 pb-10">
             <div className="w-12 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
 
             <h2 className="text-xl font-display font-bold text-navy text-center mb-1">
-              {lang === 'te' ? 'చెల్లింపు వివరాలు' : 'Payment Details'}
+              {lang === 'te' ? 'Premium కొనుగోలు' : 'Get Premium'}
             </h2>
-            <p className="text-sm text-gray-500 text-center mb-5">
-              {lang === 'te'
-                ? `${selectedPlan === 'yearly' ? 'వార్షిక' : 'నెలవారీ'} ప్లాన్`
-                : `${selectedPlan === 'yearly' ? 'Yearly' : 'Monthly'} Plan`}
-            </p>
 
-            {/* Amount */}
-            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 text-center mb-4">
+            {/* Amount Summary */}
+            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 text-center mb-5">
               <p className="text-4xl font-display font-bold text-primary">
                 Rs.{selectedPlan === 'yearly' ? YEARLY : MONTHLY}
               </p>
               <p className="text-sm text-gray-500 mt-1">
                 {selectedPlan === 'yearly'
-                  ? (lang === 'te' ? `= Rs.${YEARLY_MONTHLY}/నెల (Rs.${SAVINGS} ఆదా!)` : `= Rs.${YEARLY_MONTHLY}/month (Rs.${SAVINGS} saved!)`)
-                  : (lang === 'te' ? 'నెలవారీ చెల్లింపు' : 'Monthly billing')}
+                  ? `Yearly • Rs.${YEARLY_MONTHLY}/month • Save Rs.${SAVINGS}`
+                  : 'Monthly billing • Cancel anytime'}
               </p>
             </div>
 
-            {/* UPI Payment */}
-            <div className="space-y-3 mb-5">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                {lang === 'te' ? 'UPI ద్వారా చెల్లించండి' : 'Pay via UPI'}
+            {/* Option 1: Razorpay */}
+            <div className="space-y-3 mb-4">
+              <button
+                onClick={payWithRazorpay}
+                disabled={paying}
+                className="w-full bg-primary hover:bg-blue-700 disabled:opacity-60 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3 text-base shadow-lg shadow-primary/30 transition-all"
+              >
+                {paying ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <span className="text-xl">💳</span>
+                    {lang === 'te' ? 'Card / UPI / NetBanking తో చెల్లించండి' : 'Pay with Card / UPI / NetBanking'}
+                  </>
+                )}
+              </button>
+              <p className="text-center text-xs text-gray-400">
+                Powered by Razorpay • 100% Secure • Instant activation
               </p>
+            </div>
 
-              {/* UPI ID Box */}
-              <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-2xl p-4">
-                <div className="flex-1">
-                  <p className="text-xs text-gray-400 mb-0.5">UPI ID</p>
-                  <p className="font-bold text-navy text-lg">vyaparmitra@upi</p>
+            {/* Divider */}
+            <div className="flex items-center gap-3 my-4">
+              <div className="flex-1 h-px bg-gray-200" />
+              <span className="text-xs text-gray-400 font-medium">
+                {lang === 'te' ? 'లేదా మాన్యువల్ UPI' : 'or manual UPI'}
+              </span>
+              <div className="flex-1 h-px bg-gray-200" />
+            </div>
+
+            {/* Option 2: Manual UPI */}
+            <div className="bg-gray-50 rounded-2xl p-4 mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-xs text-gray-400">UPI ID</p>
+                  <p className="font-bold text-navy">vyaparmitra@upi</p>
                 </div>
                 <button
                   onClick={confirmPayment}
-                  className="bg-primary text-white px-4 py-2 rounded-xl text-sm font-bold"
+                  className="bg-navy text-white px-3 py-1.5 rounded-xl text-xs font-bold"
                 >
                   {lang === 'te' ? 'కాపీ' : 'Copy'}
                 </button>
               </div>
-
-              {/* Steps */}
-              <div className="space-y-2">
-                {[
-                  { step: '1', text: lang === 'te' ? 'GPay / PhonePe / Paytm తెరవండి' : 'Open GPay / PhonePe / Paytm' },
-                  { step: '2', text: lang === 'te' ? `UPI ID కి Rs.${selectedPlan === 'yearly' ? YEARLY : MONTHLY} పంపండి` : `Send Rs.${selectedPlan === 'yearly' ? YEARLY : MONTHLY} to UPI ID` },
-                  { step: '3', text: lang === 'te' ? 'Screenshot తీసి WhatsApp చేయండి' : 'Screenshot & WhatsApp us to activate' },
-                ].map(s => (
-                  <div key={s.step} className="flex items-center gap-3 text-sm text-gray-600">
-                    <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-primary font-bold text-xs">{s.step}</span>
-                    </div>
-                    {s.text}
-                  </div>
-                ))}
-              </div>
+              <p className="text-xs text-gray-500">
+                {lang === 'te'
+                  ? 'GPay/PhonePe తో Rs.' + (selectedPlan === 'yearly' ? YEARLY : MONTHLY) + ' పంపి screenshot WhatsApp చేయండి'
+                  : 'Send Rs.' + (selectedPlan === 'yearly' ? YEARLY : MONTHLY) + ' via GPay/PhonePe then WhatsApp screenshot'}
+              </p>
+              <a
+                href={`https://wa.me/919573500321?text=${encodeURIComponent(
+                  `Hi! I paid Rs.${selectedPlan === 'yearly' ? YEARLY : MONTHLY} for VyaparMitra ${selectedPlan} plan.\nBusiness: ${business?.name}\nPlease activate my Premium.`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 w-full bg-[#25D366] text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 text-sm"
+              >
+                <span>💬</span>
+                {lang === 'te' ? 'Screenshot WhatsApp చేయండి' : 'Send Screenshot on WhatsApp'}
+              </a>
             </div>
-
-            {/* WhatsApp confirmation button */}
-            <a
-              href={`https://wa.me/919573500321?text=${encodeURIComponent(
-                `Hi! I paid for VyaparMitra ${selectedPlan} plan.\nBusiness: ${business?.name}\nPhone: ${user?.phoneNumber}\nAmount: Rs.${selectedPlan === 'yearly' ? YEARLY : MONTHLY}\nPlease activate my account.`
-              )}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full bg-[#25D366] text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 text-base shadow-lg shadow-green-500/30 mb-3"
-            >
-              <span className="text-xl">💬</span>
-              {lang === 'te' ? 'Payment Screenshot WhatsApp చేయండి' : 'WhatsApp Payment Screenshot'}
-            </a>
 
             <button
               onClick={() => setShowPaymentModal(false)}
-              className="w-full py-3 text-gray-500 text-sm font-medium"
+              className="w-full py-3 text-gray-400 text-sm"
             >
-              {lang === 'te' ? 'తర్వాత చేస్తాను' : 'I\'ll do this later'}
+              {lang === 'te' ? 'తర్వాత చేస్తాను' : "I'll do this later"}
             </button>
           </div>
         </div>
