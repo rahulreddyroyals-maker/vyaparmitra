@@ -106,18 +106,18 @@ export default function PricingPage() {
     loadSubscription()
   }
 
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState(null)
+
   const handleUpgrade = (plan) => {
-    // In production: integrate Razorpay/PayU here
-    // For now show instructions
-    const msg = lang === 'te'
-      ? `చెల్లింపు కోసం:\nUPI: vyaparmitra@upi\nమొత్తం: ₹${plan === 'yearly' ? YEARLY : MONTHLY}\nPayment చేసిన తర్వాత screenshot WhatsApp చేయండి: +91 XXXXX XXXXX`
-      : `To upgrade:\nUPI: vyaparmitra@upi\nAmount: Rs.${plan === 'yearly' ? YEARLY : MONTHLY}\nAfter payment, WhatsApp screenshot to: +91 XXXXX XXXXX`
-    
-    const waMsg = encodeURIComponent(
-      `Hi! I want to upgrade VyaparMitra to ${plan} plan.\nBusiness: ${business?.name}\nPhone: ${user?.phoneNumber}`
-    )
-    window.open(`https://wa.me/91XXXXXXXXXX?text=${waMsg}`, '_blank')
-    toast.success('WhatsApp opened! Send payment confirmation to activate.')
+    setSelectedPlan(plan)
+    setShowPaymentModal(true)
+  }
+
+  const confirmPayment = () => {
+    // Copy UPI ID to clipboard
+    navigator.clipboard?.writeText('vyaparmitra@upi').catch(() => {})
+    toast.success(lang === 'te' ? 'UPI ID కాపీ అయింది!' : 'UPI ID copied!')
   }
 
   const trialDaysLeft = subscription?.trial_end
@@ -436,6 +436,94 @@ export default function PricingPage() {
           </div>
         ))}
       </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center p-0">
+          <div className="bg-white w-full max-w-md rounded-t-3xl shadow-2xl p-6 pb-8">
+            {/* Handle */}
+            <div className="w-12 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
+
+            <h2 className="text-xl font-display font-bold text-navy text-center mb-1">
+              {lang === 'te' ? 'చెల్లింపు వివరాలు' : 'Payment Details'}
+            </h2>
+            <p className="text-sm text-gray-500 text-center mb-5">
+              {lang === 'te'
+                ? `${selectedPlan === 'yearly' ? 'వార్షిక' : 'నెలవారీ'} ప్లాన్`
+                : `${selectedPlan === 'yearly' ? 'Yearly' : 'Monthly'} Plan`}
+            </p>
+
+            {/* Amount */}
+            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 text-center mb-4">
+              <p className="text-4xl font-display font-bold text-primary">
+                Rs.{selectedPlan === 'yearly' ? YEARLY : MONTHLY}
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                {selectedPlan === 'yearly'
+                  ? (lang === 'te' ? `= Rs.${YEARLY_MONTHLY}/నెల (Rs.${SAVINGS} ఆదా!)` : `= Rs.${YEARLY_MONTHLY}/month (Rs.${SAVINGS} saved!)`)
+                  : (lang === 'te' ? 'నెలవారీ చెల్లింపు' : 'Monthly billing')}
+              </p>
+            </div>
+
+            {/* UPI Payment */}
+            <div className="space-y-3 mb-5">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                {lang === 'te' ? 'UPI ద్వారా చెల్లించండి' : 'Pay via UPI'}
+              </p>
+
+              {/* UPI ID Box */}
+              <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-2xl p-4">
+                <div className="flex-1">
+                  <p className="text-xs text-gray-400 mb-0.5">UPI ID</p>
+                  <p className="font-bold text-navy text-lg">vyaparmitra@upi</p>
+                </div>
+                <button
+                  onClick={confirmPayment}
+                  className="bg-primary text-white px-4 py-2 rounded-xl text-sm font-bold"
+                >
+                  {lang === 'te' ? 'కాపీ' : 'Copy'}
+                </button>
+              </div>
+
+              {/* Steps */}
+              <div className="space-y-2">
+                {[
+                  { step: '1', text: lang === 'te' ? 'GPay / PhonePe / Paytm తెరవండి' : 'Open GPay / PhonePe / Paytm' },
+                  { step: '2', text: lang === 'te' ? `UPI ID కి Rs.${selectedPlan === 'yearly' ? YEARLY : MONTHLY} పంపండి` : `Send Rs.${selectedPlan === 'yearly' ? YEARLY : MONTHLY} to UPI ID` },
+                  { step: '3', text: lang === 'te' ? 'Screenshot తీసి WhatsApp చేయండి' : 'Screenshot & WhatsApp us to activate' },
+                ].map(s => (
+                  <div key={s.step} className="flex items-center gap-3 text-sm text-gray-600">
+                    <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-primary font-bold text-xs">{s.step}</span>
+                    </div>
+                    {s.text}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* WhatsApp confirmation button */}
+            <a
+              href={`https://wa.me/919573500321?text=${encodeURIComponent(
+                `Hi! I paid for VyaparMitra ${selectedPlan} plan.\nBusiness: ${business?.name}\nPhone: ${user?.phoneNumber}\nAmount: Rs.${selectedPlan === 'yearly' ? YEARLY : MONTHLY}\nPlease activate my account.`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full bg-[#25D366] text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 text-base shadow-lg shadow-green-500/30 mb-3"
+            >
+              <span className="text-xl">💬</span>
+              {lang === 'te' ? 'Payment Screenshot WhatsApp చేయండి' : 'WhatsApp Payment Screenshot'}
+            </a>
+
+            <button
+              onClick={() => setShowPaymentModal(false)}
+              className="w-full py-3 text-gray-500 text-sm font-medium"
+            >
+              {lang === 'te' ? 'తర్వాత చేస్తాను' : 'I\'ll do this later'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
