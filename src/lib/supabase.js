@@ -202,12 +202,41 @@ export const addInvoice = async (businessId, customerId, items, totalAmount, due
 
 export const markInvoicePaid = async (invoiceId, amount, method = 'cash') => {
   try {
+    // 1. Get invoice details including customer_id
+    const { data: invoice, error: fetchErr } = await supabase
+      .from('invoices')
+      .select('*, customers(id, total_due)')
+      .eq('id', invoiceId)
+      .single()
+    if (fetchErr) return { data: null, error: fetchErr }
+
+    // 2. Record payment
     await supabase.from('payments').insert({
-      invoice_id: invoiceId, amount,
-      payment_date: new Date().toISOString(), method
+      invoice_id: invoiceId,
+      amount,
+      payment_date: new Date().toISOString(),
+      method
     })
+
+    // 3. Mark invoice as paid
     const { data, error } = await supabase
-      .from('invoices').update({ status: 'paid' }).eq('id', invoiceId).select().single()
+      .from('invoices')
+      .update({ status: 'paid' })
+      .eq('id', invoiceId)
+      .select()
+      .single()
+
+    // 4. CRITICAL: Reduce customer total_due
+    if (invoice?.customer_id && invoice?.customers) {
+      const currentDue = invoice.customers.total_due || 0
+      const invoiceAmount = invoice.total_amount || amount
+      const newDue = Math.max(0, currentDue - invoiceAmount)
+      await supabase
+        .from('customers')
+        .update({ total_due: newDue })
+        .eq('id', invoice.customer_id)
+    }
+
     return { data, error }
   } catch (e) {
     return { data: null, error: { message: e.message } }
