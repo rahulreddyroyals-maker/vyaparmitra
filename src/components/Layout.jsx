@@ -186,6 +186,10 @@ export default function Layout({ children }) {
               className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
               <BarChart3 size={18} className="text-primary" /> {t('reports')}
             </NavLink>
+            <NavLink to="/whatsapp-setup" onClick={() => setShowMore(false)}
+  className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
+  <MessageSquare size={18} className="text-green-500" /> WhatsApp Setup
+</NavLink>
             <button onClick={handleLogout}
               className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 w-full">
               <LogOut size={18} /> {t('logout')}
