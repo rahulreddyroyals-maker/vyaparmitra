@@ -1,35 +1,25 @@
 // src/lib/whatsapp.js
 // VyaparMitra WhatsApp Integration Layer
-// Works in SIMULATOR mode by default
-// Switch to LIVE mode by adding VITE_WATI_API_URL + VITE_WATI_API_TOKEN in env vars
+// SIMULATOR mode by default — activate with API key when ready
 
-const WATI_API_URL = import.meta.env.VITE_WATI_API_URL   // e.g. https://live-server-xxxxx.wati.io
-const WATI_TOKEN   = import.meta.env.VITE_WATI_API_TOKEN  // Bearer token from WATI dashboard
+const WATI_API_URL = import.meta.env.VITE_WATI_API_URL
+const WATI_TOKEN   = import.meta.env.VITE_WATI_API_TOKEN
 
-// Detect if WhatsApp API is configured
 export const isWhatsAppLive = () => {
   return !!(WATI_API_URL && WATI_TOKEN &&
     !WATI_API_URL.includes('YOUR_') &&
     WATI_TOKEN.length > 10)
 }
 
-// Send a WhatsApp message
-// In simulator mode: logs to console + returns mock response
-// In live mode: sends real WhatsApp via WATI API
 export const sendWhatsApp = async (phone, message) => {
   const live = isWhatsAppLive()
-
   if (!live) {
-    // SIMULATOR MODE - just log, no real message sent
     console.log(`[WA SIMULATOR] To: ${phone}\n${message}`)
     return { success: true, mode: 'simulator', phone, message }
   }
-
-  // LIVE MODE - send via WATI
   try {
     const cleanPhone = phone.replace(/\D/g, '').replace(/^0/, '').replace(/^91/, '')
     const fullPhone = `91${cleanPhone}`
-
     const res = await fetch(
       `${WATI_API_URL}/api/v1/sendSessionMessage/${fullPhone}`,
       {
@@ -50,7 +40,6 @@ export const sendWhatsApp = async (phone, message) => {
   }
 }
 
-// Send payment reminder to a customer
 export const sendPaymentReminder = async (customer, business, amount) => {
   const msg =
     `Hello ${customer.name}! 👋\n\n` +
@@ -59,11 +48,9 @@ export const sendPaymentReminder = async (customer, business, amount) => {
     `Please clear at your earliest convenience.\n\n` +
     `Thank you! 🙏\n` +
     `_VyaparMitra - Business Manager_`
-
   return sendWhatsApp(customer.phone, msg)
 }
 
-// Send invoice share message
 export const sendInvoiceWhatsApp = async (customer, business, invoice) => {
   const msg =
     `🧾 *Invoice from ${business.name}*\n\n` +
@@ -73,35 +60,25 @@ export const sendInvoiceWhatsApp = async (customer, business, invoice) => {
     `Status: ${invoice.status === 'paid' ? '✅ Paid' : '⏳ Pending'}\n` +
     `Date: ${new Date(invoice.created_at).toLocaleDateString('en-IN')}\n\n` +
     `Thank you for your business! 🙏`
-
   return sendWhatsApp(customer.phone, msg)
 }
 
-// Send low stock alert to business owner
 export const sendLowStockAlert = async (ownerPhone, business, products) => {
   const productList = products
     .map(p => `• ${p.name}: only ${p.stock} units left`)
     .join('\n')
-
   const msg =
     `⚠️ *Low Stock Alert - ${business.name}*\n\n` +
     `The following products are running low:\n\n` +
     `${productList}\n\n` +
     `Please reorder soon!\n` +
     `_VyaparMitra Business Manager_`
-
   return sendWhatsApp(ownerPhone, msg)
 }
 
-// Process incoming WhatsApp message (for webhook)
-// This is called when a customer sends a message to your WhatsApp Business number
-export const processIncomingMessage = async (fromPhone, messageText, businessId) => {
-  // Import here to avoid circular deps
-  const { parseAndExecuteIntent } = await import('./intentProcessor.js')
-  return parseAndExecuteIntent(fromPhone, messageText, businessId)
-}
+// Frontend-only stub — actual processing done in backend/server.js
+export const processIncomingMessage = async () => null
 
-// Get WhatsApp API status for display in UI
 export const getWhatsAppStatus = () => {
   if (isWhatsAppLive()) {
     return {
@@ -123,7 +100,6 @@ export const getWhatsAppStatus = () => {
   }
 }
 
-// Instructions for activating WhatsApp API
 export const ACTIVATION_STEPS = [
   {
     step: 1,
@@ -144,7 +120,7 @@ export const ACTIVATION_STEPS = [
   {
     step: 3,
     title: 'Add to environment variables',
-    description: 'Add VITE_WATI_API_URL and VITE_WATI_API_TOKEN to Vercel/Netlify',
+    description: 'Add VITE_WATI_API_URL and VITE_WATI_API_TOKEN to Vercel',
     url: null,
     free: true,
     cost: 'Free',
@@ -152,7 +128,7 @@ export const ACTIVATION_STEPS = [
   {
     step: 4,
     title: 'Set webhook URL in WATI',
-    description: 'WATI Dashboard → Webhook → Set URL to your backend webhook endpoint',
+    description: 'WATI Dashboard → Webhook → Set URL to your Railway backend',
     url: null,
     free: true,
     cost: 'Free',
