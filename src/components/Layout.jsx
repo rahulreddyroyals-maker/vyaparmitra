@@ -9,9 +9,9 @@ import { getInvoices, getProducts } from '../lib/supabase'
 import {
   LayoutDashboard, Package, Users, FileText,
   BarChart3, Smartphone, LogOut, Bell, Menu, X,
-  AlertTriangle, IndianRupee, CheckCircle, Languages, Crown
+  AlertTriangle, IndianRupee, CheckCircle, Crown,
+  MessageSquare, User, Settings
 } from 'lucide-react'
-import { format } from 'date-fns'
 
 const NAV_KEYS = [
   { to: '/dashboard', icon: LayoutDashboard, key: 'home' },
@@ -22,7 +22,7 @@ const NAV_KEYS = [
 ]
 
 export default function Layout({ children }) {
-  const { business } = useAuth()
+  const { business, user } = useAuth()
   const { lang, switchLang, t } = useLang()
   const navigate = useNavigate()
   const location = useLocation()
@@ -32,87 +32,69 @@ export default function Layout({ children }) {
   const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
-    if (!business) return
-    loadNotifications()
+    if (business) loadNotifications()
   }, [business])
 
   const loadNotifications = async () => {
-    const [invRes, prodRes] = await Promise.all([
-      getInvoices(business.id),
-      getProducts(business.id),
-    ])
-    const invoices = invRes.data || []
-    const products = prodRes.data || []
+    try {
+      const [invRes, prodRes] = await Promise.all([
+        getInvoices(business.id),
+        getProducts(business.id),
+      ])
+      const invoices = invRes.data || []
+      const products = prodRes.data || []
+      const notifs = []
 
-    const notifs = []
+      const pending = invoices.filter(i => i.status === 'pending')
+      if (pending.length > 0) {
+        const total = pending.reduce((s, i) => s + (i.total_amount || 0), 0)
+        notifs.push({
+          id: 'pending', type: 'payment', icon: IndianRupee,
+          color: 'text-orange-500', bg: 'bg-orange-50',
+          title: t('pendingPaymentsAlert'),
+          body: `${pending.length} invoices worth \u20B9${total.toLocaleString('en-IN')} are unpaid`,
+          time: 'Now', action: '/invoices',
+        })
+      }
 
-    // Pending payment notifications
-    const pending = invoices.filter(i => i.status === 'pending')
-    if (pending.length > 0) {
-      const total = pending.reduce((s, i) => s + (i.total_amount || 0), 0)
-      notifs.push({
-        id: 'pending',
-        type: 'payment',
-        icon: IndianRupee,
-        color: 'text-orange-500',
-        bg: 'bg-orange-50',
-        title: t('pendingPaymentsAlert'),
-        body: `${pending.length} invoices worth \u20B9${total.toLocaleString('en-IN')} are unpaid`,
-        time: 'Now',
-        action: '/invoices',
+      const lowStock = products.filter(p => p.stock <= (p.low_stock_threshold || 5))
+      lowStock.forEach(p => {
+        notifs.push({
+          id: `stock-${p.id}`, type: 'stock', icon: AlertTriangle,
+          color: 'text-red-500', bg: 'bg-red-50',
+          title: t('lowStockAlertTitle'),
+          body: `${p.name} has only ${p.stock} units left`,
+          time: 'Today', action: '/products',
+        })
       })
+
+      const today = new Date().toISOString().split('T')[0]
+      const todayPaid = invoices.filter(i => i.status === 'paid' && i.created_at?.startsWith(today))
+      if (todayPaid.length > 0) {
+        const total = todayPaid.reduce((s, i) => s + (i.total_amount || 0), 0)
+        notifs.push({
+          id: 'paid-today', type: 'success', icon: CheckCircle,
+          color: 'text-green-500', bg: 'bg-green-50',
+          title: t('paymentsReceivedToday'),
+          body: `${todayPaid.length} payments totaling \u20B9${total.toLocaleString('en-IN')}`,
+          time: 'Today', action: '/invoices',
+        })
+      }
+
+      if (notifs.length === 0) {
+        notifs.push({
+          id: 'all-good', type: 'success', icon: CheckCircle,
+          color: 'text-green-500', bg: 'bg-green-50',
+          title: t('allGood'), body: t('allGoodSub'),
+          time: 'Now', action: '/dashboard',
+        })
+      }
+
+      setNotifications(notifs)
+      setUnreadCount(notifs.filter(n => n.type !== 'success').length)
+    } catch (e) {
+      console.error('Notification load error:', e)
     }
-
-    // Low stock notifications
-    const lowStock = products.filter(p => p.stock <= (p.low_stock_threshold || 5))
-    lowStock.forEach(p => {
-      notifs.push({
-        id: `stock-${p.id}`,
-        type: 'stock',
-        icon: AlertTriangle,
-        color: 'text-red-500',
-        bg: 'bg-red-50',
-        title: t('lowStockAlertTitle'),
-        body: `${p.name} has only ${p.stock} units left`,
-        time: 'Today',
-        action: '/products',
-      })
-    })
-
-    // Recent paid invoices
-    const today = new Date().toISOString().split('T')[0]
-    const todayPaid = invoices.filter(i => i.status === 'paid' && i.created_at?.startsWith(today))
-    if (todayPaid.length > 0) {
-      const total = todayPaid.reduce((s, i) => s + (i.total_amount || 0), 0)
-      notifs.push({
-        id: 'paid-today',
-        type: 'success',
-        icon: CheckCircle,
-        color: 'text-green-500',
-        bg: 'bg-green-50',
-        title: t('paymentsReceivedToday'),
-        body: `${todayPaid.length} payments totaling \u20B9${total.toLocaleString('en-IN')}`,
-        time: 'Today',
-        action: '/invoices',
-      })
-    }
-
-    if (notifs.length === 0) {
-      notifs.push({
-        id: 'all-good',
-        type: 'success',
-        icon: CheckCircle,
-        color: 'text-green-500',
-        bg: 'bg-green-50',
-        title: t('allGood'),
-        body: t('allGoodSub'),
-        time: 'Now',
-        action: '/dashboard',
-      })
-    }
-
-    setNotifications(notifs)
-    setUnreadCount(notifs.filter(n => n.type !== 'success').length)
   }
 
   const handleLogout = async () => {
@@ -146,14 +128,18 @@ export default function Layout({ children }) {
                 </span>
               )}
             </button>
+            {/* Language toggle */}
             <button
               onClick={() => switchLang(lang === 'en' ? 'te' : 'en')}
-              className="p-2 bg-white/10 rounded-xl active:bg-white/20 flex items-center gap-1"
-              title={lang === 'en' ? 'Switch to Telugu' : 'English కి మార్చండి'}
+              className="p-2 bg-white/10 rounded-xl active:bg-white/20"
             >
               <span className="text-white text-xs font-bold">{lang === 'en' ? 'తె' : 'EN'}</span>
             </button>
-            <button onClick={() => setShowMore(!showMore)} className="p-2 bg-white/10 rounded-xl active:bg-white/20">
+            {/* Menu */}
+            <button
+              onClick={() => setShowMore(!showMore)}
+              className="p-2 bg-white/10 rounded-xl active:bg-white/20"
+            >
               <Menu size={18} className="text-white" />
             </button>
           </div>
@@ -176,20 +162,43 @@ export default function Layout({ children }) {
       {showMore && (
         <>
           <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setShowMore(false)} />
-          <div className="fixed top-20 right-4 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 z-50 w-44"
+          <div className="fixed top-20 right-4 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 z-50 w-52"
             style={{ right: 'max(1rem, calc(50% - 224px))' }}>
-            <NavLink to="/pricing" onClick={() => setShowMore(false)}
-              className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-amber-600 hover:bg-amber-50">
-              <Crown size={18} className="text-amber-500" /> {lang === 'te' ? 'Premium' : 'Premium'}
+
+            {/* Profile */}
+            <NavLink to="/profile" onClick={() => setShowMore(false)}
+              className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
+              <div className="w-7 h-7 bg-primary rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-xs">{(business?.name || 'V')[0]}</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-navy">{business?.name}</p>
+                <p className="text-xs text-gray-400">{lang === 'te' ? 'ప్రొఫైల్ చూడండి' : 'View Profile'}</p>
+              </div>
             </NavLink>
+
+            <div className="h-px bg-gray-100 my-1" />
+
             <NavLink to="/reports" onClick={() => setShowMore(false)}
               className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
-              <BarChart3 size={18} className="text-primary" /> {t('reports')}
+              <BarChart3 size={18} className="text-primary" />
+              {lang === 'te' ? 'నివేదికలు' : 'Reports'}
             </NavLink>
+
+            <NavLink to="/pricing" onClick={() => setShowMore(false)}
+              className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-amber-600 hover:bg-amber-50">
+              <Crown size={18} className="text-amber-500" />
+              Premium
+            </NavLink>
+
             <NavLink to="/whatsapp-setup" onClick={() => setShowMore(false)}
-  className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
-  <MessageSquare size={18} className="text-green-500" /> WhatsApp Setup
-</NavLink>
+              className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
+              <MessageSquare size={18} className="text-green-500" />
+              WhatsApp Setup
+            </NavLink>
+
+            <div className="h-px bg-gray-100 my-1" />
+
             <button onClick={handleLogout}
               className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 w-full">
               <LogOut size={18} /> {t('logout')}
@@ -204,26 +213,20 @@ export default function Layout({ children }) {
           <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setShowNotifications(false)} />
           <div className="fixed top-0 right-0 h-full bg-white z-50 shadow-2xl flex flex-col"
             style={{ width: '100%', maxWidth: 480, left: '50%', transform: 'translateX(-50%)' }}>
-            {/* Header */}
             <div className="bg-navy text-white px-4 pt-8 pb-4 flex items-center justify-between">
               <div>
                 <h2 className="font-display font-bold text-lg">{t('notifications')}</h2>
                 <p className="text-blue-300 text-xs">{notifications.length} {t('alerts')}</p>
               </div>
-              <button onClick={() => setShowNotifications(false)}
-                className="p-2 bg-white/10 rounded-xl">
+              <button onClick={() => setShowNotifications(false)} className="p-2 bg-white/10 rounded-xl">
                 <X size={20} className="text-white" />
               </button>
             </div>
-
-            {/* Notification List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {notifications.map(n => (
-                <button
-                  key={n.id}
+                <button key={n.id}
                   onClick={() => { setShowNotifications(false); navigate(n.action) }}
-                  className="w-full bg-white rounded-2xl p-4 flex items-start gap-3 border border-gray-100 shadow-sm active:bg-gray-50 text-left"
-                >
+                  className="w-full bg-white rounded-2xl p-4 flex items-start gap-3 border border-gray-100 shadow-sm active:bg-gray-50 text-left">
                   <div className={`w-10 h-10 ${n.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
                     <n.icon size={18} className={n.color} />
                   </div>
@@ -235,13 +238,9 @@ export default function Layout({ children }) {
                 </button>
               ))}
             </div>
-
-            {/* Footer */}
             <div className="p-4 border-t border-gray-100">
-              <button
-                onClick={() => { loadNotifications(); }}
-                className="w-full py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl text-sm"
-              >
+              <button onClick={loadNotifications}
+                className="w-full py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl text-sm">
                 {t('refreshNotifications')}
               </button>
             </div>
