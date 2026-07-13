@@ -220,9 +220,10 @@ export default function SimulatorPage() {
         let cust = customers.find(c => c.name.toLowerCase().includes(parsed.customer.toLowerCase()))
         let isNewCustomer = false
         if (!cust) {
-          const { data: newCust } = await supabase.from('customers').insert({
+          const { data: newCust, error: newCustErr } = await supabase.from('customers').insert({
             business_id: business.id, name: parsed.customer, phone: '', total_due: 0
           }).select().single()
+          if (newCustErr) console.error('Customer insert error:', newCustErr)
           cust = newCust
           isNewCustomer = true
         }
@@ -301,11 +302,13 @@ export default function SimulatorPage() {
         reply = `I didn't understand that.\n\nHere's what you can say:\n\nRecord a sale:\n"Sold 5 cement to Ramesh for 2500"\n\nRecord payment:\n"Ramesh paid 2000"\n\nBusiness report:\n"How is my business?"\n\nCheck dues:\n"Show pending invoices"\n\nCheck stock:\n"How much cement left?"\n\nCustomer info:\n"Ramesh history"`
       }
 
-      // Log to whatsapp_logs
-      await supabase.from('whatsapp_logs').insert({
-        user_id: business.user_id, message: text,
-        intent: parsed.intent, response: reply
-      }).select().catch(() => {})
+      // Log to whatsapp_logs (fire and forget)
+      try {
+        await supabase.from('whatsapp_logs').insert({
+          user_id: business.user_id, message: text,
+          intent: parsed.intent, response: reply
+        })
+      } catch (_) {}
 
     } catch (err) {
       console.error('Message error:', err)
