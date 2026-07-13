@@ -18,7 +18,7 @@ const NAV_KEYS = [
   { to: '/products', icon: Package, key: 'products' },
   { to: '/invoices', icon: FileText, key: 'invoices' },
   { to: '/customers', icon: Users, key: 'customers' },
-  { to: '/simulator', icon: Smartphone, key: 'demo', highlight: true },
+  { to: '/simulator', icon: MessageSquare, key: 'whatsapp' },
 ]
 
 export default function Layout({ children }) {
@@ -264,17 +264,13 @@ export default function Layout({ children }) {
                 className="flex flex-col items-center gap-0.5 flex-1 py-1 relative">
                 <div className={`p-2 rounded-xl transition-all ${
                   active ? 'bg-primary text-white shadow-md shadow-primary/40'
-                  : highlight ? 'bg-green-100 text-green-700'
                   : 'text-gray-400'
                 }`}>
                   <Icon size={19} />
                 </div>
                 <span className={`text-xs font-medium ${
-                  active ? 'text-primary' : highlight ? 'text-green-600' : 'text-gray-400'
-                }`}>{t(key)}</span>
-                {highlight && !active && (
-                  <span className="absolute top-0 right-2 w-2 h-2 bg-success rounded-full" />
-                )}
+                  active ? 'text-primary' : 'text-gray-400'
+                }`}>{key === 'whatsapp' ? 'WhatsApp' : t(key)}</span>
               </NavLink>
             )
           })}
