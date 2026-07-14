@@ -168,7 +168,6 @@ export default function SimulatorPage() {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [showInstructions, setShowInstructions] = useState(false)
   const [products, setProducts] = useState([])
   const [customers, setCustomers] = useState([])
   const [invoices, setInvoices] = useState([])
@@ -390,13 +389,13 @@ export default function SimulatorPage() {
         ))}
       </div>
 
-      {/* How to use instructions */}
-      <div
-        className="flex-shrink-0 overflow-y-auto"
-        style={{ background: '#F0F2F5', maxHeight: showInstructions ? 240 : 0, transition: 'max-height 0.3s ease', overflow: 'hidden' }}
-      >
-        <div className="px-3 py-2 space-y-2">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">How to type messages</p>
+      {/* How to use instructions - shown when chat is empty */}
+      {messages.length <= 1 && (
+        <div
+          className="flex-shrink-0 overflow-y-auto px-3 py-3 space-y-2"
+          style={{ background: '#F0F2F5', maxHeight: 260 }}
+        >
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">How to type messages</p>
           {INSTRUCTIONS.map((ins, i) => (
             <div key={i} className="bg-white rounded-xl p-3 flex items-start gap-3">
               <span className="text-lg flex-shrink-0">{ins.icon}</span>
@@ -408,22 +407,7 @@ export default function SimulatorPage() {
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Help toggle bar */}
-      <div
-        className="px-3 py-2 flex items-center justify-between flex-shrink-0 border-t border-gray-200"
-        style={{ background: '#F0F2F5' }}
-      >
-        <button
-          onClick={() => setShowInstructions(s => !s)}
-          className="flex items-center gap-2 text-xs font-semibold text-blue-600"
-        >
-          <span>{showInstructions ? '▼' : '▲'}</span>
-          {showInstructions ? 'Hide help' : 'How to use? Tap here'}
-        </button>
-        <span className="text-xs text-gray-400">Type in the box below</span>
-      </div>
+      )}
 
       {/* Input bar */}
       <div

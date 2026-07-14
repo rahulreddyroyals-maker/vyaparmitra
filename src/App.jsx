@@ -13,7 +13,7 @@ import InvoicesPage from './pages/InvoicesPage'
 import ReportsPage from './pages/ReportsPage'
 import SimulatorPage from './pages/SimulatorPage'
 import PricingPage from './pages/PricingPage'
-import WhatsAppSetupPage from './pages/WhatsAppSetupPage'
+
 import ProfilePage from './pages/ProfilePage'
 
 function ProtectedRoutes() {
@@ -48,7 +48,7 @@ function ProtectedRoutes() {
         <Route path="/simulator" element={<SimulatorPage />} />
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/whatsapp-setup" element={<WhatsAppSetupPage />} />
+        
         <Route path="/profile" element={<ProfilePage />} />
       </Routes>
     </Layout>
