@@ -19,7 +19,7 @@ const FEATURES_FREE = [
 const FEATURES_PREMIUM = [
   { en: 'Unlimited invoices', te: 'అపరిమిత బిల్లులు', highlight: true },
   { en: 'Unlimited products & customers', te: 'అపరిమిత ఉత్పత్తులు & కస్టమర్లు', highlight: true },
-  { en: 'WhatsApp Business API', te: 'WhatsApp బిజినెస్ API', highlight: true },
+
   { en: 'Auto payment reminders', te: 'స్వయంచాలక రిమైండర్లు', highlight: true },
   { en: 'GST reports & CA export', te: 'GST నివేదికలు & CA ఎగుమతి', highlight: true },
   { en: 'Low stock auto alerts', te: 'స్వయంచాలక స్టాక్ హెచ్చరికలు' },
@@ -490,7 +490,7 @@ export default function PricingPage() {
           { feature: { en: 'Invoices/month', te: 'నెలకు బిల్లులు' }, free: '10', premium: lang === 'te' ? 'అపరిమిత' : 'Unlimited' },
           { feature: { en: 'Products', te: 'ఉత్పత్తులు' }, free: '5', premium: lang === 'te' ? 'అపరిమిత' : 'Unlimited' },
           { feature: { en: 'Customers', te: 'కస్టమర్లు' }, free: '3', premium: lang === 'te' ? 'అపరిమిత' : 'Unlimited' },
-          { feature: { en: 'WhatsApp Bot', te: 'WhatsApp బాట్' }, free: lang === 'te' ? 'లేదు' : 'No', premium: lang === 'te' ? 'అవును' : 'Yes', premiumGreen: true },
+
           { feature: { en: 'GST Reports', te: 'GST నివేదికలు' }, free: lang === 'te' ? 'లేదు' : 'No', premium: lang === 'te' ? 'అవును' : 'Yes', premiumGreen: true },
           { feature: { en: 'Auto Reminders', te: 'స్వయంచాలక రిమైండర్లు' }, free: lang === 'te' ? 'లేదు' : 'No', premium: lang === 'te' ? 'అవును' : 'Yes', premiumGreen: true },
           { feature: { en: 'Priority Support', te: 'ప్రాధాన్య మద్దతు' }, free: lang === 'te' ? 'లేదు' : 'No', premium: lang === 'te' ? 'అవును' : 'Yes', premiumGreen: true },

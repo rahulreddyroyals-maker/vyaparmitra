@@ -340,24 +340,7 @@ export default function ProfilePage() {
             <ChevronRight size={16} className="text-gray-400" />
           </button>
 
-          {/* WhatsApp Setup */}
-          <button
-            onClick={() => navigate('/whatsapp-setup')}
-            className="flex items-center justify-between w-full px-4 py-3 text-left"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center">
-                <Shield size={16} className="text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-navy">WhatsApp Setup</p>
-                <p className="text-xs text-gray-400">
-                  {lang === 'te' ? 'API సెటప్ & స్టేటస్' : 'API setup & status'}
-                </p>
-              </div>
-            </div>
-            <ChevronRight size={16} className="text-gray-400" />
-          </button>
+
         </div>
 
         {/* App Info */}

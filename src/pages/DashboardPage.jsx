@@ -2,8 +2,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { useLang } from '../contexts/LanguageContext'
-import PremiumBanner from '../components/PremiumBanner'
 import { getInvoices, getProducts, getCustomers } from '../lib/supabase'
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { Plus, FileText, Users, AlertTriangle, Package, TrendingUp, TrendingDown, ChevronRight, IndianRupee } from 'lucide-react'
@@ -11,7 +9,6 @@ import { format, subDays } from 'date-fns'
 
 export default function DashboardPage() {
   const { business } = useAuth()
-  const { t, lang } = useLang()
   const [invoices, setInvoices] = useState([])
   const [products, setProducts] = useState([])
   const [customers, setCustomers] = useState([])
@@ -62,11 +59,6 @@ export default function DashboardPage() {
 
   return (
     <div className="pb-4">
-      {/* Premium Banner */}
-      <div className="mx-4 mt-4 mb-2">
-        <PremiumBanner compact />
-      </div>
-
       {/* Hero Stats Card */}
       <div className="bg-gradient-to-br from-primary to-[#1d4ed8] mx-4 mt-4 rounded-3xl p-5 text-white shadow-xl shadow-primary/30">
         <p className="text-blue-200 text-xs font-medium mb-1">Total Revenue</p>
@@ -139,10 +131,10 @@ export default function DashboardPage() {
         <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Quick Actions</p>
         <div className="grid grid-cols-2 gap-3">
           {[
-            { to: '/invoices', icon: '🧾', label: t('newInvoice'), color: 'bg-blue-50 border-blue-100', text: 'text-blue-700' },
-            { to: '/products', icon: '📦', label: t('addProduct'), color: 'bg-green-50 border-green-100', text: 'text-green-700' },
-            { to: '/customers', icon: '👥', label: t('addCustomer'), color: 'bg-orange-50 border-orange-100', text: 'text-orange-700' },
-            { to: '/simulator', icon: '💬', label: t('waDemo'), color: 'bg-purple-50 border-purple-100', text: 'text-purple-700' },
+            { to: '/invoices', icon: '🧾', label: 'New Invoice', color: 'bg-blue-50 border-blue-100', text: 'text-blue-700' },
+            { to: '/products', icon: '📦', label: 'Add Product', color: 'bg-green-50 border-green-100', text: 'text-green-700' },
+            { to: '/customers', icon: '👥', label: 'Add Customer', color: 'bg-orange-50 border-orange-100', text: 'text-orange-700' },
+            { to: '/simulator', icon: '💬', label: 'WhatsApp', color: 'bg-green-50 border-green-100', text: 'text-green-700' },
           ].map(a => (
             <Link key={a.to} to={a.to}
               className={`${a.color} border rounded-2xl p-4 flex items-center gap-3 active:scale-95 transition-transform`}>

@@ -154,13 +154,13 @@ function buildLowStockReply(products) {
   return r
 }
 
-const QUICK_MSGS = [
-  { label: 'Record Sale', text: 'Sold 5 cement to Ramesh for 2500', color: '#E3F2FD', textColor: '#1565C0' },
-  { label: 'Payment In', text: 'Ramesh paid 2000', color: '#E8F5E9', textColor: '#2E7D32' },
-  { label: 'Check Stock', text: 'How much cement left?', color: '#FFF3E0', textColor: '#E65100' },
-  { label: 'Customer Info', text: 'Ramesh history', color: '#F3E5F5', textColor: '#6A1B9A' },
-  { label: 'Business Report', text: 'How is my business today?', color: '#E0F2F1', textColor: '#00695C' },
-  { label: 'Pending Dues', text: 'Show pending invoices', color: '#FCE4EC', textColor: '#880E4F' },
+const INSTRUCTIONS = [
+  { icon: '📦', title: 'Record a sale', example: 'Sold 5 cement to Ramesh for 2500', desc: 'qty + product + customer name + amount' },
+  { icon: '💰', title: 'Record payment', example: 'Ramesh paid 2000', desc: 'customer name + amount received' },
+  { icon: '📊', title: 'Business report', example: 'How is my business today?', desc: "get today's sales and pending summary" },
+  { icon: '📋', title: 'Pending dues', example: 'Show pending invoices', desc: 'see all unpaid invoices' },
+  { icon: '📦', title: 'Check stock', example: 'How much cement left?', desc: 'check stock of any product' },
+  { icon: '👤', title: 'Customer info', example: 'Ramesh history', desc: 'see orders and dues for a customer' },
 ]
 
 export default function SimulatorPage() {
@@ -168,6 +168,7 @@ export default function SimulatorPage() {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showInstructions, setShowInstructions] = useState(false)
   const [products, setProducts] = useState([])
   const [customers, setCustomers] = useState([])
   const [invoices, setInvoices] = useState([])
@@ -389,22 +390,39 @@ export default function SimulatorPage() {
         ))}
       </div>
 
-      {/* Quick action chips */}
+      {/* How to use instructions */}
       <div
-        className="px-3 py-2 flex gap-2 overflow-x-auto flex-shrink-0"
-        style={{ background: '#F0F2F5', scrollbarWidth: 'none' }}
+        className="flex-shrink-0 overflow-y-auto"
+        style={{ background: '#F0F2F5', maxHeight: showInstructions ? 240 : 0, transition: 'max-height 0.3s ease', overflow: 'hidden' }}
       >
-        {QUICK_MSGS.map(q => (
-          <button
-            key={q.label}
-            onClick={() => !loading && processMessage(q.text)}
-            disabled={loading}
-            className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold disabled:opacity-50 transition-all active:scale-95"
-            style={{ background: q.color, color: q.textColor, border: `1px solid ${q.textColor}30` }}
-          >
-            {q.label}
-          </button>
-        ))}
+        <div className="px-3 py-2 space-y-2">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">How to type messages</p>
+          {INSTRUCTIONS.map((ins, i) => (
+            <div key={i} className="bg-white rounded-xl p-3 flex items-start gap-3">
+              <span className="text-lg flex-shrink-0">{ins.icon}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-gray-700">{ins.title}</p>
+                <p className="text-xs text-blue-600 font-medium mt-0.5">"{ins.example}"</p>
+                <p className="text-xs text-gray-400 mt-0.5">{ins.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Help toggle bar */}
+      <div
+        className="px-3 py-2 flex items-center justify-between flex-shrink-0 border-t border-gray-200"
+        style={{ background: '#F0F2F5' }}
+      >
+        <button
+          onClick={() => setShowInstructions(s => !s)}
+          className="flex items-center gap-2 text-xs font-semibold text-blue-600"
+        >
+          <span>{showInstructions ? '▼' : '▲'}</span>
+          {showInstructions ? 'Hide help' : 'How to use? Tap here'}
+        </button>
+        <span className="text-xs text-gray-400">Type in the box below</span>
       </div>
 
       {/* Input bar */}
